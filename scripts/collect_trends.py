@@ -299,40 +299,341 @@ def send_report_emails(emails: list[str]) -> None:
         print(f"[OK] {len(chunk)} 名に送信完了")
 
 # ────────────────────────────────────────────
-# 5. note.com 自動投稿
+# 5. note.com 用ビジュアル生成 & 自動投稿
 # ────────────────────────────────────────────
-def build_note_article(trend_data: dict[str, Any]) -> str:
-    """note掲載用のMarkdown記事を生成"""
-    lines = [
-        f"# Amazon FBA 今週の売れ筋トレンド TOP10【{ISO_WEEK}】\n",
-        f"毎週月曜日に**FBA販売者向けのトレンドデータ**を無料公開しています。\n",
-        f"有料版（週次PDFレポート）では全5カテゴリの詳細データ・仕入れ分析が届きます。\n",
-        "---\n",
-    ]
+import io
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib import font_manager as fm
+from PIL import Image, ImageDraw, ImageFont
 
-    for cat, products in trend_data.items():
-        lines.append(f"## 📦 {cat} ランキング TOP10\n")
-        if not products:
-            lines.append("（今週はデータ取得できませんでした）\n")
-            continue
-        for p in products[:10]:
-            price_str = f"　{p['price']}" if p["price"] != "-" else ""
-            lines.append(f"{p['rank']}. **{p['title']}**{price_str}")
-        lines.append("")
+
+# ── フォント設定 ──────────────────────────────
+FONT_CANDIDATES = [
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJKjp-Regular.otf",
+    "/usr/share/fonts/noto-cjk/NotoSansCJKjp-Regular.otf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf",
+    "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+    "/Library/Fonts/Arial Unicode.ttf",
+]
+
+def _find_font() -> str | None:
+    for p in FONT_CANDIDATES:
+        if os.path.exists(p):
+            return p
+    return None
+
+def _setup_mpl_font() -> None:
+    fp = _find_font()
+    if fp:
+        fm.fontManager.addfont(fp)
+        prop = fm.FontProperties(fname=fp)
+        plt.rcParams["font.family"] = prop.get_name()
+    plt.rcParams["axes.unicode_minus"] = False
+
+
+# ── ① ヘッダー画像（1200×630 OGPサイズ） ──────
+def generate_header_image() -> bytes:
+    W, H = 1200, 630
+    img = Image.new("RGB", (W, H), "#1c1c2e")
+    draw = ImageDraw.Draw(img)
+
+    # オレンジのグラデーション帯
+    for i in range(H):
+        r = int(249 - (249 - 234) * i / H)
+        g = int(115 - (115 - 88) * i / H)
+        b = int(22 - (22 - 12) * i / H)
+        draw.line([(0, i), (W, i)], fill=(r, g, b))
+
+    # 暗いオーバーレイで文字読みやすく
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 120))
+    img.paste(Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB"))
+    draw = ImageDraw.Draw(img)
+
+    font_path = _find_font()
+    def pil_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+        try:
+            return ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
+        except Exception:
+            return ImageFont.load_default()
+
+    # ロゴバッジ
+    draw.rounded_rectangle([(60, 60), (420, 120)], radius=10, fill="#f97316")
+    draw.text((75, 72), "📦 FBAトレンドレーダー", font=pil_font(30), fill="white")
+
+    # メインタイトル
+    draw.text((60, 150), "Amazon FBA", font=pil_font(90), fill="white")
+    draw.text((60, 255), "今週の売れ筋完全レポート", font=pil_font(58), fill="#fed7aa")
+
+    # 週ラベル
+    draw.text((60, 360), f"🗓  {ISO_WEEK}　|　毎週火曜 21:00 更新", font=pil_font(32), fill="#fde68a")
+
+    # 下部バー
+    draw.rectangle([(0, 520), (W, 630)], fill="#0f0f1a")
+    badges = ["✅ 全5カテゴリ", "✅ TOP10完全公開", "✅ 価格データつき", "✅ 無料で読める"]
+    x = 60
+    for b in badges:
+        draw.text((x, 548), b, font=pil_font(26), fill="#f97316")
+        x += 280
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+# ── ② カテゴリ別横棒グラフ ───────────────────
+def generate_category_chart(cat_name: str, products: list[dict]) -> bytes:
+    _setup_mpl_font()
+    if not products:
+        return b""
+
+    items = products[:8]
+    labels = []
+    for p in items:
+        t = p["title"]
+        labels.append(t[:18] + "…" if len(t) > 18 else t)
+
+    ranks  = [p["rank"] for p in items]
+    values = [len(items) + 1 - r for r in ranks]   # 1位が最大値
+
+    fig, ax = plt.subplots(figsize=(11, 5.5))
+    fig.patch.set_facecolor("#fafafa")
+    ax.set_facecolor("#fafafa")
+
+    colors_bar = ["#f97316" if i == 0 else "#fb923c" if i == 1 else "#fdba74"
+                  for i in range(len(items))]
+    bars = ax.barh(labels[::-1], values[::-1], color=colors_bar[::-1],
+                   edgecolor="white", linewidth=1.2, height=0.65)
+
+    # 価格ラベル
+    for bar, p in zip(bars[::-1], items):
+        price = p.get("price", "-")
+        if price and price != "-":
+            ax.text(bar.get_width() + 0.08, bar.get_y() + bar.get_height() / 2,
+                    price, va="center", ha="left", fontsize=9.5, color="#374151",
+                    fontweight="bold")
+
+    # ランク番号
+    for bar, rank in zip(bars[::-1], ranks):
+        ax.text(0.12, bar.get_y() + bar.get_height() / 2,
+                f"{rank}位", va="center", ha="left", fontsize=9, color="white",
+                fontweight="bold")
+
+    ax.set_xlim(0, len(items) + 1.8)
+    ax.set_xlabel("")
+    ax.set_title(f"📦  {cat_name}　ランキング TOP{len(items)}",
+                 fontsize=15, fontweight="bold", pad=14, color="#1c1c2e")
+    ax.xaxis.set_visible(False)
+    for spine in ["top", "right", "bottom"]:
+        ax.spines[spine].set_visible(False)
+    ax.spines["left"].set_color("#e5e7eb")
+
+    gold  = mpatches.Patch(color="#f97316", label="1位")
+    silv  = mpatches.Patch(color="#fb923c", label="2位")
+    brnz  = mpatches.Patch(color="#fdba74", label="3位〜")
+    ax.legend(handles=[gold, silv, brnz], loc="lower right",
+              fontsize=9, framealpha=0.7)
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format="PNG", dpi=150, bbox_inches="tight",
+                facecolor="#fafafa", edgecolor="none")
+    plt.close()
+    return buf.getvalue()
+
+
+# ── ③ 全カテゴリ比較サマリーグラフ ──────────
+def generate_summary_chart(trend_data: dict[str, list[dict]]) -> bytes:
+    _setup_mpl_font()
+
+    cats   = list(trend_data.keys())
+    counts = [len(v) for v in trend_data.values()]
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    fig.patch.set_facecolor("#fafafa")
+    ax.set_facecolor("#fafafa")
+
+    bar_colors = ["#f97316", "#fb923c", "#fdba74", "#fed7aa", "#ffedd5"]
+    bars = ax.bar(cats, counts, color=bar_colors[:len(cats)],
+                  edgecolor="white", linewidth=1.5, width=0.55)
+
+    for bar, cnt in zip(bars, counts):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+                f"{cnt}商品", ha="center", va="bottom", fontsize=11,
+                fontweight="bold", color="#374151")
+
+    ax.set_ylim(0, max(counts) + 4)
+    ax.set_ylabel("取得商品数", fontsize=11, color="#6b7280")
+    ax.set_title("📊  今週のカテゴリ別データ取得数",
+                 fontsize=14, fontweight="bold", pad=12, color="#1c1c2e")
+    ax.yaxis.set_visible(False)
+    for spine in ["top", "right", "left"]:
+        ax.spines[spine].set_visible(False)
+    ax.spines["bottom"].set_color("#e5e7eb")
+    ax.tick_params(axis="x", labelsize=12)
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format="PNG", dpi=150, bbox_inches="tight",
+                facecolor="#fafafa", edgecolor="none")
+    plt.close()
+    return buf.getvalue()
+
+
+# ── ④ 画像をSupabase Storageにアップロード ──
+def _ensure_public_bucket(bucket: str = "note-images") -> None:
+    url     = f"{SUPABASE_URL}/storage/v1/bucket/{bucket}"
+    headers = {"Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+    r = requests.get(url, headers=headers, timeout=10)
+    if r.status_code == 400 or (r.status_code == 200 and not r.json().get("public")):
+        requests.post(f"{SUPABASE_URL}/storage/v1/bucket",
+                      headers=headers,
+                      json={"id": bucket, "name": bucket, "public": True},
+                      timeout=10)
+    elif r.status_code == 404:
+        requests.post(f"{SUPABASE_URL}/storage/v1/bucket",
+                      headers=headers,
+                      json={"id": bucket, "name": bucket, "public": True},
+                      timeout=10)
+
+
+def upload_note_image(image_bytes: bytes, filename: str) -> str:
+    """画像をSupabase公開バケットにアップしてpublic URLを返す"""
+    _ensure_public_bucket()
+    path = f"{ISO_WEEK}/{filename}"
+    url  = f"{SUPABASE_URL}/storage/v1/object/note-images/{path}"
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type":  "image/png",
+        "x-upsert":      "true",
+    }
+    requests.post(url, headers=headers, data=image_bytes, timeout=30)
+    return f"{SUPABASE_URL}/storage/v1/object/public/note-images/{path}"
+
+
+# ── ⑤ 記事本文ビルド ────────────────────────
+def build_note_article(trend_data: dict[str, Any],
+                       image_urls: dict[str, str]) -> str:
+    date_str = TODAY.strftime("%Y年%m月%d日")
+
+    header_img  = image_urls.get("header", "")
+    summary_img = image_urls.get("summary", "")
+
+    # ─ 導入 ─
+    lines = []
+    if header_img:
+        lines.append(f"![ヘッダー画像]({header_img})\n")
 
     lines += [
-        "---\n",
-        "## 📊 もっと詳しいデータが欲しい方へ\n",
-        "このデータの**完全版PDF**（全カテゴリ・より詳細な分析つき）を\n"
-        "毎週月曜日に配信するサービスをやっています。\n",
-        f"👉 [FBAトレンドレーダーを見てみる]({SITE_URL})\n",
-        "- スタンダード：¥3,980/月（全カテゴリTOP20）",
-        "- プロ：¥9,800/月（仕入れ分析・競合チェックつき）\n",
-        "#Amazon #FBA #せどり #副業 #物販 #Amazonせどり #FBAトレンド",
+        f"# 【{ISO_WEEK}】Amazon FBA 今週の売れ筋トレンド完全版",
+        "",
+        f"こんにちは！毎週火曜日に **Amazon FBAの売れ筋トレンドデータ** を無料公開しています。",
+        f"（{date_str} 更新）",
+        "",
+        "FBA販売者・せどらーの方が「**今週どのカテゴリで何が売れているか**」を",
+        "一目でわかるようにまとめました。仕入れ判断の参考にどうぞ！",
+        "",
+        "---",
+        "",
+        "## 📊 今週のデータ概要",
+        "",
     ]
+
+    if summary_img:
+        lines.append(f"![カテゴリ別データ概要]({summary_img})\n")
+
+    # データ概要テーブル
+    lines += [
+        "| カテゴリ | 取得商品数 | 今週の注目 |",
+        "|---------|-----------|-----------|",
+    ]
+    for cat, products in trend_data.items():
+        top = products[0]["title"][:20] + "…" if products else "データなし"
+        lines.append(f"| {cat} | {len(products)}商品 | {top} |")
+
+    lines += ["", "---", ""]
+
+    # ─ カテゴリ別詳細 ─
+    emoji_map = {
+        "ペット用品": "🐾", "アウトドア": "⛺", "キッチン": "🍳",
+        "ビューティー": "💄", "ベビー": "👶",
+    }
+    for cat, products in trend_data.items():
+        emoji = emoji_map.get(cat, "📦")
+        lines += ["", f"## {emoji} {cat} ランキング TOP10", ""]
+
+        chart_img = image_urls.get(f"chart_{cat}", "")
+        if chart_img:
+            lines.append(f"![{cat}ランキンググラフ]({chart_img})\n")
+
+        if not products:
+            lines.append("> 今週はデータを取得できませんでした。次週再試行します。\n")
+            continue
+
+        lines += [
+            "| 順位 | 商品名 | 価格 | チェック |",
+            "|-----|-------|------|---------|",
+        ]
+        for p in products[:10]:
+            price   = p.get("price", "-") or "-"
+            asin    = p.get("asin", "")
+            amz_url = f"https://www.amazon.co.jp/dp/{asin}" if asin else ""
+            link    = f"[Amazon]({amz_url})" if amz_url else "-"
+            medal   = "🥇" if p["rank"] == 1 else "🥈" if p["rank"] == 2 else "🥉" if p["rank"] == 3 else f"{p['rank']}位"
+            lines.append(f"| {medal} | {p['title'][:30]} | {price} | {link} |")
+
+        # 簡易コメント（1位商品の注目ポイント）
+        if products:
+            top1 = products[0]
+            lines += [
+                "",
+                f"> **💡 注目商品：{top1['title'][:25]}**",
+                f"> 今週1位のロングセラー商品です。"
+                f"{'価格帯：' + top1['price'] if top1['price'] != '-' else ''}",
+                f"> FBA手数料を考慮した仕入れ判断に活用ください。",
+                "",
+            ]
+
+    # ─ まとめ & CTA ─
+    lines += [
+        "---",
+        "",
+        "## 🔥 今週のまとめ",
+        "",
+        "- 全5カテゴリのランキングを毎週無料公開しています",
+        "- データはAmazon公式ページから自動収集（月曜AM更新）",
+        "- **有料版では** TOP20・価格推移・競合分析・仕入れ利益率まで届きます",
+        "",
+        "---",
+        "",
+        "## 📬 もっと詳しいデータが欲しい方へ",
+        "",
+        "毎週月曜日の朝、**全カテゴリの詳細PDFレポート**をメールでお届けするサービスを提供しています。",
+        "",
+        "| プラン | 価格 | 内容 |",
+        "|-------|------|------|",
+        "| スタンダード | ¥3,980/月 | 全5カテゴリ TOP20・価格データ |",
+        "| プロ | ¥9,800/月 | ↑＋仕入れ利益率・競合チェック・独自分析 |",
+        "",
+        f"👉 **[FBAトレンドレーダーを見てみる]({SITE_URL})**",
+        "",
+        "初月は返金保証あり。合わなければすぐ解約できます。",
+        "",
+        "---",
+        "",
+        "*このデータはAmazon公式の公開情報をもとに作成しています。*",
+        "*仕入れの最終判断はご自身の責任でお願いします。*",
+        "",
+        "#Amazon #FBA #せどり #副業 #物販 #Amazonせどり #FBAトレンド #仕入れ #副業月収",
+    ]
+
     return "\n".join(lines)
 
 
+# ── ⑥ ログイン ──────────────────────────────
 def _note_login(email: str, password: str) -> requests.Session:
     """メアドとパスワードでnote.comに自動ログインしてSessionを返す"""
     session = requests.Session()
@@ -380,7 +681,7 @@ def _note_login(email: str, password: str) -> requests.Session:
 
 
 def post_to_note(trend_data: dict[str, Any]) -> None:
-    """メアド・パスワードで自動ログインしてnote.comに記事を投稿する"""
+    """画像生成→アップロード→ログイン→note.comに記事を投稿する"""
     email    = os.environ.get("NOTE_EMAIL", "")
     password = os.environ.get("NOTE_PASSWORD", "")
 
@@ -388,16 +689,46 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
         print("[SKIP] NOTE_EMAIL / NOTE_PASSWORD が未設定 → note投稿をスキップ")
         return
 
-    article_body = build_note_article(trend_data)
-    title = f"Amazon FBA 今週の売れ筋トレンド TOP10【{ISO_WEEK}】"
+    # ── 画像生成 & アップロード ──
+    print("  [note] ヘッダー画像を生成中...")
+    image_urls: dict[str, str] = {}
+    try:
+        header_bytes = generate_header_image()
+        image_urls["header"] = upload_note_image(header_bytes, "header.png")
+        print(f"  [note] ヘッダー: {image_urls['header']}")
+    except Exception as e:
+        print(f"  [note][WARN] ヘッダー画像スキップ: {e}")
 
+    try:
+        summary_bytes = generate_summary_chart(trend_data)
+        image_urls["summary"] = upload_note_image(summary_bytes, "summary.png")
+        print(f"  [note] サマリーグラフ: {image_urls['summary']}")
+    except Exception as e:
+        print(f"  [note][WARN] サマリーグラフスキップ: {e}")
+
+    for cat, products in trend_data.items():
+        try:
+            chart_bytes = generate_category_chart(cat, products)
+            if chart_bytes:
+                key = f"chart_{cat}"
+                safe_name = cat.replace(" ", "_").replace("/", "_")
+                image_urls[key] = upload_note_image(chart_bytes, f"chart_{safe_name}.png")
+                print(f"  [note] {cat}グラフ: {image_urls[key]}")
+        except Exception as e:
+            print(f"  [note][WARN] {cat}グラフスキップ: {e}")
+
+    # ── ログイン ──
     try:
         session = _note_login(email, password)
     except Exception as e:
         print(f"[WARN] noteログインエラー: {e}")
         return
 
-    # 記事を投稿（公開）
+    # ── 記事本文生成 ──
+    article_body = build_note_article(trend_data, image_urls)
+    title = f"【{ISO_WEEK}】Amazon FBA 今週の売れ筋トレンド完全版｜全5カテゴリTOP10"
+
+    # ── 投稿（公開） ──
     try:
         resp = session.post(
             "https://note.com/api/v2/text_notes",
@@ -411,6 +742,8 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
                     {"hashtag_name": "せどり"},
                     {"hashtag_name": "副業"},
                     {"hashtag_name": "物販"},
+                    {"hashtag_name": "Amazonせどり"},
+                    {"hashtag_name": "副業月収"},
                 ],
             },
             timeout=30,
@@ -425,33 +758,37 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
 
 
 # ────────────────────────────────────────────
-# メイン
+# メイン（RUN_MODE で分岐）
+#   report : 会員向けPDF生成・メール配信のみ
+#   note   : Amazonデータ収集・note投稿のみ
+#   all    : 両方（デフォルト）
 # ────────────────────────────────────────────
 if __name__ == "__main__":
-    print(f"=== FBAトレンドレーダー 自動配信 {ISO_WEEK} ===")
+    RUN_MODE = os.environ.get("RUN_MODE", "all")
+    print(f"=== FBAトレンドレーダー [{RUN_MODE.upper()}] {ISO_WEEK} ===")
 
-    print("[1/6] Amazonベストセラーデータを収集中...")
+    print("[データ収集] Amazonベストセラーデータを取得中...")
     trends = build_trend_data()
-
     with open(os.path.join(REPORT_DIR, f"trends_{ISO_WEEK}.json"), "w", encoding="utf-8") as f:
         json.dump(trends, f, ensure_ascii=False, indent=2)
-    print(f"      → {sum(len(v) for v in trends.values())} 商品を収集")
+    total = sum(len(v) for v in trends.values())
+    print(f"          → {total} 商品を収集")
 
-    print("[2/6] PDFレポートを生成中...")
-    pdf_path = generate_pdf(trends)
+    if RUN_MODE in ("report", "all"):
+        print("\n[REPORT] PDFレポート生成中...")
+        pdf_path = generate_pdf(trends)
 
-    print("[3/6] Supabaseにアップロード中...")
-    storage_path = upload_to_supabase(pdf_path)
-    save_report_record(storage_path)
+        print("[REPORT] Supabaseにアップロード中...")
+        storage_path = upload_to_supabase(pdf_path)
+        save_report_record(storage_path)
 
-    print("[4/6] 会員リスト取得中...")
-    emails = get_active_members()
-    print(f"      → {len(emails)} 名にメール送信")
+        print("[REPORT] 会員リスト取得中...")
+        emails = get_active_members()
+        print(f"       → {len(emails)} 名にメール送信")
+        send_report_emails(emails)
 
-    print("[5/6] メール送信中...")
-    send_report_emails(emails)
+    if RUN_MODE in ("note", "all"):
+        print("\n[NOTE] note.com に記事を自動投稿中...")
+        post_to_note(trends)
 
-    print("[6/6] note.com に記事を自動投稿中...")
-    post_to_note(trends)
-
-    print("=== 完了 ===")
+    print("\n=== 完了 ===")

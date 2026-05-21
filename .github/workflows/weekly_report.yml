@@ -1,23 +1,35 @@
-name: 週次レポート自動生成・配信
+name: 週次レポート自動生成・配信・note投稿
 
 on:
-  # 毎週月曜日の日本時間 AM7:00 に自動実行（UTC 22:00 = JST 7:00）
   schedule:
+    # ① 会員向けレポート配信: 毎週月曜 AM7:00 JST (UTC日曜 22:00)
     - cron: "0 22 * * 0"
-  # 手動実行も可能（テスト用）
+    # ② note記事公開: 毎週火曜 PM9:00 JST (UTC火曜 12:00)
+    #    ※火曜夜はnote閲覧数ピーク帯。月曜より翌日がバズりやすい
+    - cron: "0 12 * * 2"
+  # 手動実行（テスト用）
   workflow_dispatch:
+    inputs:
+      mode:
+        description: '実行モード: report（会員配信のみ）/ note（note投稿のみ）/ all（両方）'
+        required: false
+        default: 'all'
 
 jobs:
-  generate-and-send:
+  # ─────────────────────────────────────────
+  # JOB 1: 会員向けレポート配信（月曜AM7:00）
+  # ─────────────────────────────────────────
+  member-report:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 22 * * 0')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Python のセットアップ
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
@@ -26,18 +38,56 @@ jobs:
       - name: 依存パッケージのインストール
         run: pip install -r scripts/requirements.txt
 
-      - name: レポート生成・配信スクリプトの実行
+      - name: レポート生成・会員メール配信
         env:
-          SUPABASE_URL:           ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY:   ${{ secrets.SUPABASE_SERVICE_KEY }}
-          RESEND_API_KEY:         ${{ secrets.RESEND_API_KEY }}
-          FROM_EMAIL:             ${{ secrets.FROM_EMAIL }}
-          NEXT_PUBLIC_SITE_URL:   ${{ secrets.SITE_URL }}
-          NOTE_EMAIL:             ${{ secrets.NOTE_EMAIL }}
-          NOTE_PASSWORD:          ${{ secrets.NOTE_PASSWORD }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY:       ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL:           ${{ secrets.FROM_EMAIL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.SITE_URL }}
+          RUN_MODE:             "report"
         run: python scripts/collect_trends.py
 
-      - name: 失敗時にSlack通知（オプション）
-        if: failure()
+  # ─────────────────────────────────────────
+  # JOB 2: note.com自動投稿（火曜PM9:00）
+  # ─────────────────────────────────────────
+  note-post:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 12 * * 2')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: 日本語フォントのインストール（グラフ表示用）
         run: |
-          echo "レポート生成に失敗しました。GitHub Actionsのログを確認してください。"
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk
+          fc-cache -f
+
+      - name: 依存パッケージのインストール
+        run: pip install -r scripts/requirements.txt
+
+      - name: note記事ビジュアル生成・自動投稿
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY:       ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL:           ${{ secrets.FROM_EMAIL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.SITE_URL }}
+          NOTE_EMAIL:           ${{ secrets.NOTE_EMAIL }}
+          NOTE_PASSWORD:        ${{ secrets.NOTE_PASSWORD }}
+          RUN_MODE:             "note"
+        run: python scripts/collect_trends.py
+
+      - name: 失敗時のアラート
+        if: failure()
+        run: echo "⚠️ note投稿失敗。GitHub Actionsのログを確認してください。"
