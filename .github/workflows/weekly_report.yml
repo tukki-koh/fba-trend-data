@@ -33,6 +33,8 @@ jobs:
           RESEND_API_KEY:         ${{ secrets.RESEND_API_KEY }}
           FROM_EMAIL:             ${{ secrets.FROM_EMAIL }}
           NEXT_PUBLIC_SITE_URL:   ${{ secrets.SITE_URL }}
+          NOTE_SESSION_COOKIE:    ${{ secrets.NOTE_SESSION_COOKIE }}
+          NOTE_USER_SLUG:         ${{ secrets.NOTE_USER_SLUG }}
         run: python scripts/collect_trends.py
 
       - name: 失敗時にSlack通知（オプション）

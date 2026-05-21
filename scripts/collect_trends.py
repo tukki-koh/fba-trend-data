@@ -2,10 +2,12 @@
 毎週月曜日に GitHub Actions から自動実行されるスクリプト。
 Amazon公開ベストセラーページ（無料・APIキー不要）からデータを収集し、
 PDFレポートを生成して Supabase Storage にアップロード → 会員全員にメール送信。
+さらに note.com へ週次トレンド記事を自動投稿。
 
 必要な環境変数:
   SUPABASE_URL, SUPABASE_SERVICE_KEY, RESEND_API_KEY,
-  FROM_EMAIL, NEXT_PUBLIC_SITE_URL
+  FROM_EMAIL, NEXT_PUBLIC_SITE_URL,
+  NOTE_SESSION_COOKIE (任意), NOTE_USER_SLUG (任意)
 """
 
 import os
@@ -297,30 +299,127 @@ def send_report_emails(emails: list[str]) -> None:
         print(f"[OK] {len(chunk)} 名に送信完了")
 
 # ────────────────────────────────────────────
+# 5. note.com 自動投稿
+# ────────────────────────────────────────────
+def build_note_article(trend_data: dict[str, Any]) -> str:
+    """note掲載用のMarkdown記事を生成"""
+    lines = [
+        f"# Amazon FBA 今週の売れ筋トレンド TOP10【{ISO_WEEK}】\n",
+        f"毎週月曜日に**FBA販売者向けのトレンドデータ**を無料公開しています。\n",
+        f"有料版（週次PDFレポート）では全5カテゴリの詳細データ・仕入れ分析が届きます。\n",
+        "---\n",
+    ]
+
+    for cat, products in trend_data.items():
+        lines.append(f"## 📦 {cat} ランキング TOP10\n")
+        if not products:
+            lines.append("（今週はデータ取得できませんでした）\n")
+            continue
+        for p in products[:10]:
+            price_str = f"　{p['price']}" if p["price"] != "-" else ""
+            lines.append(f"{p['rank']}. **{p['title']}**{price_str}")
+        lines.append("")
+
+    lines += [
+        "---\n",
+        "## 📊 もっと詳しいデータが欲しい方へ\n",
+        "このデータの**完全版PDF**（全カテゴリ・より詳細な分析つき）を\n"
+        "毎週月曜日に配信するサービスをやっています。\n",
+        f"👉 [FBAトレンドレーダーを見てみる]({SITE_URL})\n",
+        "- スタンダード：¥3,980/月（全カテゴリTOP20）",
+        "- プロ：¥9,800/月（仕入れ分析・競合チェックつき）\n",
+        "#Amazon #FBA #せどり #副業 #物販 #Amazonせどり #FBAトレンド",
+    ]
+    return "\n".join(lines)
+
+
+def post_to_note(trend_data: dict[str, Any]) -> None:
+    """note.com の内部APIを使って記事を自動投稿する"""
+    session_cookie = os.environ.get("NOTE_SESSION_COOKIE", "")
+    user_slug      = os.environ.get("NOTE_USER_SLUG", "")
+
+    if not session_cookie or not user_slug:
+        print("[SKIP] NOTE_SESSION_COOKIE / NOTE_USER_SLUG が未設定 → note投稿をスキップ")
+        return
+
+    article_body = build_note_article(trend_data)
+    title = f"Amazon FBA 今週の売れ筋トレンド TOP10【{ISO_WEEK}】"
+
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept":          "application/json, text/plain, */*",
+        "Accept-Language": "ja-JP,ja;q=0.9",
+        "Origin":          "https://note.com",
+        "Referer":         "https://note.com/",
+    })
+    session.cookies.set("note_session_v5", session_cookie, domain=".note.com")
+
+    # CSRFトークン取得
+    try:
+        me_resp = session.get(f"https://note.com/api/v2/creators/{user_slug}", timeout=10)
+        me_resp.raise_for_status()
+        csrf_token = me_resp.cookies.get("_note_token") or ""
+        if csrf_token:
+            session.headers["X-CSRF-Token"] = csrf_token
+    except Exception as e:
+        print(f"[WARN] note CSRF取得失敗: {e}")
+
+    # 記事を投稿（公開）
+    try:
+        resp = session.post(
+            "https://note.com/api/v2/text_notes",
+            json={
+                "name":   title,
+                "body":   article_body,
+                "status": "published",
+                "hashtag_note_publishes_attributes": [
+                    {"hashtag_name": "Amazon"},
+                    {"hashtag_name": "FBA"},
+                    {"hashtag_name": "せどり"},
+                    {"hashtag_name": "副業"},
+                    {"hashtag_name": "物販"},
+                ],
+            },
+            timeout=30,
+        )
+        if resp.status_code in (200, 201):
+            note_url = resp.json().get("data", {}).get("noteUrl", "")
+            print(f"[OK] note投稿完了: {note_url or '(URL取得失敗)'}")
+        else:
+            print(f"[WARN] note投稿失敗 ({resp.status_code}): {resp.text[:200]}")
+    except Exception as e:
+        print(f"[WARN] note投稿エラー: {e}")
+
+
+# ────────────────────────────────────────────
 # メイン
 # ────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"=== FBAトレンドレーダー 自動配信 {ISO_WEEK} ===")
 
-    print("[1/5] Amazonベストセラーデータを収集中...")
+    print("[1/6] Amazonベストセラーデータを収集中...")
     trends = build_trend_data()
 
     with open(os.path.join(REPORT_DIR, f"trends_{ISO_WEEK}.json"), "w", encoding="utf-8") as f:
         json.dump(trends, f, ensure_ascii=False, indent=2)
     print(f"      → {sum(len(v) for v in trends.values())} 商品を収集")
 
-    print("[2/5] PDFレポートを生成中...")
+    print("[2/6] PDFレポートを生成中...")
     pdf_path = generate_pdf(trends)
 
-    print("[3/5] Supabaseにアップロード中...")
+    print("[3/6] Supabaseにアップロード中...")
     storage_path = upload_to_supabase(pdf_path)
     save_report_record(storage_path)
 
-    print("[4/5] 会員リスト取得中...")
+    print("[4/6] 会員リスト取得中...")
     emails = get_active_members()
     print(f"      → {len(emails)} 名にメール送信")
 
-    print("[5/5] メール送信中...")
+    print("[5/6] メール送信中...")
     send_report_emails(emails)
+
+    print("[6/6] note.com に記事を自動投稿中...")
+    post_to_note(trends)
 
     print("=== 完了 ===")
