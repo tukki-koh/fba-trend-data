@@ -333,37 +333,69 @@ def build_note_article(trend_data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def post_to_note(trend_data: dict[str, Any]) -> None:
-    """note.com の内部APIを使って記事を自動投稿する"""
-    session_cookie = os.environ.get("NOTE_SESSION_COOKIE", "")
-    user_slug      = os.environ.get("NOTE_USER_SLUG", "")
+def _note_login(email: str, password: str) -> requests.Session:
+    """メアドとパスワードでnote.comに自動ログインしてSessionを返す"""
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept":          "application/json, text/plain, */*",
+        "Accept-Language": "ja-JP,ja;q=0.9",
+        "Origin":          "https://note.com",
+        "Referer":         "https://note.com/login",
+        "Content-Type":    "application/json",
+    })
 
-    if not session_cookie or not user_slug:
-        print("[SKIP] NOTE_SESSION_COOKIE / NOTE_USER_SLUG が未設定 → note投稿をスキップ")
+    # ① ログインページを取得してCSRFトークンを拾う
+    login_page = session.get("https://note.com/login", timeout=15)
+    csrf = ""
+    for cookie in session.cookies:
+        if "csrf" in cookie.name.lower() or "token" in cookie.name.lower():
+            csrf = cookie.value
+            break
+    soup_login = BeautifulSoup(login_page.text, "html.parser")
+    meta_csrf = soup_login.find("meta", {"name": "csrf-token"})
+    if meta_csrf:
+        csrf = meta_csrf.get("content", csrf)
+    if csrf:
+        session.headers["X-CSRF-Token"] = csrf
+
+    # ② ログインAPIを叩く
+    resp = session.post(
+        "https://note.com/api/v3/users/sign_in",
+        json={"login": email, "password": password},
+        timeout=15,
+    )
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(f"noteログイン失敗 ({resp.status_code}): {resp.text[:200]}")
+
+    data = resp.json()
+    # ログイン後のCSRFトークンを更新
+    new_csrf = resp.headers.get("X-CSRF-Token") or data.get("csrf_token", "")
+    if new_csrf:
+        session.headers["X-CSRF-Token"] = new_csrf
+
+    print(f"[OK] note.com ログイン成功: {data.get('nickname') or email}")
+    return session
+
+
+def post_to_note(trend_data: dict[str, Any]) -> None:
+    """メアド・パスワードで自動ログインしてnote.comに記事を投稿する"""
+    email    = os.environ.get("NOTE_EMAIL", "")
+    password = os.environ.get("NOTE_PASSWORD", "")
+
+    if not email or not password:
+        print("[SKIP] NOTE_EMAIL / NOTE_PASSWORD が未設定 → note投稿をスキップ")
         return
 
     article_body = build_note_article(trend_data)
     title = f"Amazon FBA 今週の売れ筋トレンド TOP10【{ISO_WEEK}】"
 
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "Accept":          "application/json, text/plain, */*",
-        "Accept-Language": "ja-JP,ja;q=0.9",
-        "Origin":          "https://note.com",
-        "Referer":         "https://note.com/",
-    })
-    session.cookies.set("note_session_v5", session_cookie, domain=".note.com")
-
-    # CSRFトークン取得
     try:
-        me_resp = session.get(f"https://note.com/api/v2/creators/{user_slug}", timeout=10)
-        me_resp.raise_for_status()
-        csrf_token = me_resp.cookies.get("_note_token") or ""
-        if csrf_token:
-            session.headers["X-CSRF-Token"] = csrf_token
+        session = _note_login(email, password)
     except Exception as e:
-        print(f"[WARN] note CSRF取得失敗: {e}")
+        print(f"[WARN] noteログインエラー: {e}")
+        return
 
     # 記事を投稿（公開）
     try:
