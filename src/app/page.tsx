@@ -1,5 +1,13 @@
 import { CheckCircle, TrendingUp, BarChart2, Zap, ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
+import Script from "next/script";
+
+export const metadata: Metadata = {
+  title: "FBAトレンドレーダー｜Amazon売れ筋トレンドを毎週自動配信",
+  description:
+    "Amazon FBA出品者・せどらー向けに全5カテゴリの売れ筋ランキングTOP10を毎週月曜に自動配信。仕入れ判断・商品リサーチを効率化。月額3,980円〜・14日返金保証。",
+};
 
 const PLANS = [
   {
@@ -54,13 +62,71 @@ const FAQS = [
   },
   {
     q: "データの精度はどのくらいですか？",
-    a: "Amazon公式データAPIおよびKeepaを活用した高精度データを使用しています。毎週最新データで更新されます。",
+    a: "Amazon Japan公式の公開ベストセラーページから毎週収集した最新データを使用しています。毎週月曜の朝に自動更新されます。",
+  },
+  {
+    q: "スマホでも見られますか？",
+    a: "はい。PDFレポートはスマートフォン・タブレット・PCすべてで閲覧できます。マイページもスマホ対応しています。",
+  },
+  {
+    q: "どのカテゴリのデータが届きますか？",
+    a: "ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリのTOP10ランキングが届きます。プロプランでは20カテゴリに拡大されます。",
   },
 ];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://fba-trend-data.vercel.app/#website",
+      url: "https://fba-trend-data.vercel.app",
+      name: "FBAトレンドレーダー",
+      description: "Amazon FBA出品者向け週次トレンドデータ配信サービス",
+      inLanguage: "ja",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "FBAトレンドレーダー",
+      applicationCategory: "BusinessApplication",
+      offers: [
+        {
+          "@type": "Offer",
+          name: "スタンダードプラン",
+          price: "3980",
+          priceCurrency: "JPY",
+          billingIncrement: "P1M",
+          description: "全5カテゴリTOP10週次PDFレポート",
+        },
+        {
+          "@type": "Offer",
+          name: "プロプラン",
+          price: "9800",
+          priceCurrency: "JPY",
+          billingIncrement: "P1M",
+          description: "全20カテゴリ詳細データ＋競合分析",
+        },
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: { "@type": "Answer", text: faq.a },
+      })),
+    },
+  ],
+};
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <Script
+        id="json-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ナビゲーション */}
       <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-sm border-b border-gray-100 z-50">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
