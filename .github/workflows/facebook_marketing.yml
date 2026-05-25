@@ -1,0 +1,61 @@
+name: Facebook自動マーケティング（週3回）
+
+on:
+  schedule:
+    # 月曜 AM8:30 JST = UTC 日曜 23:30
+    - cron: "30 23 * * 0"
+    # 水曜 PM7:00 JST = UTC 水曜 10:00
+    - cron: "0 10 * * 3"
+    # 金曜 PM6:00 JST = UTC 金曜 9:00
+    - cron: "0 9 * * 5"
+  workflow_dispatch:
+    inputs:
+      post_mode:
+        description: 'monday / wednesday / friday'
+        required: false
+        default: 'monday'
+
+jobs:
+  facebook-post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: 依存パッケージのインストール
+        run: pip install -r scripts/requirements.txt
+
+      - name: 投稿モードを自動判定
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.post_mode }}" >> $GITHUB_OUTPUT
+          else
+            DOW=$(date +%u)
+            if   [ "$DOW" = "1" ]; then echo "mode=monday"    >> $GITHUB_OUTPUT
+            elif [ "$DOW" = "3" ]; then echo "mode=wednesday"  >> $GITHUB_OUTPUT
+            elif [ "$DOW" = "5" ]; then echo "mode=friday"     >> $GITHUB_OUTPUT
+            else                        echo "mode=monday"     >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Facebook自動投稿
+        env:
+          FB_PAGE_ID:            ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN:  ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY:  ${{ secrets.SUPABASE_SERVICE_KEY }}
+          NEXT_PUBLIC_SITE_URL:  ${{ secrets.SITE_URL }}
+          FB_POST_MODE:          ${{ steps.mode.outputs.mode }}
+        run: python scripts/post_facebook.py
+
+      - name: 失敗時アラート
+        if: failure()
+        run: echo "⚠️ Facebook投稿失敗。アクセストークンの期限切れを確認してください。"
