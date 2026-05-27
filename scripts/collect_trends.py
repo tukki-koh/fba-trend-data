@@ -1141,17 +1141,33 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
     article_body = build_note_article(trend_data, image_urls)
     title = f"【{ISO_WEEK}】Amazon FBA 今週の売れ筋トレンド完全版｜全5カテゴリTOP10"
 
-    # ── CSRFトークンをnote.comから取得（未設定の場合） ──
-    if "X-CSRFToken" not in session.headers:
-        try:
-            r = session.get("https://note.com/", timeout=10)
-            csrf = session.cookies.get("_csrft_", domain=".note.com") \
-                or session.cookies.get("_csrft_")
-            if csrf:
-                session.headers["X-CSRFToken"] = csrf
-                print(f"  [note] CSRFトークン取得: {csrf[:12]}...")
-        except Exception as e:
-            print(f"  [note][WARN] CSRF取得失敗: {e}")
+    # ── セッション確認 & CSRFトークン取得 ──
+    try:
+        r = session.get("https://note.com/", timeout=15)
+        print(f"  [note] GET note.com → {r.status_code}")
+        # 全Cookieを表示（デバッグ）
+        all_cookie_names = [c.name for c in session.cookies]
+        print(f"  [note] 保有Cookie: {all_cookie_names}")
+        # _csrft_ を探す
+        csrf = None
+        for c in session.cookies:
+            if c.name == "_csrft_":
+                csrf = c.value
+                break
+        if csrf:
+            session.headers["X-CSRFToken"] = csrf
+            print(f"  [note] CSRFトークン取得: {csrf[:12]}...")
+        else:
+            print("  [note][WARN] _csrft_ なし → CSRF不要かもしれない")
+    except Exception as e:
+        print(f"  [note][WARN] note.com GET失敗: {e}")
+
+    # 認証確認（ログイン済みか）
+    try:
+        me = session.get("https://note.com/api/v2/users/current_user", timeout=10)
+        print(f"  [note] 認証確認 → {me.status_code}: {me.text[:100]}")
+    except Exception as e:
+        print(f"  [note][WARN] 認証確認失敗: {e}")
 
     # ── 投稿（複数ペイロード形式を試す） ──
     hashtags = ["Amazon", "FBA", "せどり", "副業", "物販", "Amazonせどり", "副業月収"]
