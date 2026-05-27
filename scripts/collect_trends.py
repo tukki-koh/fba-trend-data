@@ -796,26 +796,49 @@ def _note_login_from_cookie() -> "requests.Session | None":
         session.headers["X-CSRFToken"] = csrf_token
         print(f"  [note] CSRFトークン設定: {csrf_token[:12]}...")
     else:
-        print("  [note][WARN] _csrft_ が見つかりません（投稿が拒否される可能性）")
+        print("  [note][WARN] _csrft_ なし（HttpOnly Cookie）→ 投稿時に取得します")
 
-    # セッション有効確認
-    try:
-        resp = session.get(
-            "https://note.com/api/v1/users/current_user", timeout=10
-        )
-        if resp.status_code == 200:
-            nickname = resp.json().get("data", {}).get("nickname", "不明")
-            print(f"  [note] Cookie認証成功: @{nickname}")
-            return session
-        else:
-            print(
-                f"  [note][WARN] Cookie無効 ({resp.status_code}) — セッションが期限切れです\n"
-                "  → note.comで再ログインし、NOTE_SESSION_COOKIEを更新してください"
-            )
-            return None
-    except Exception as e:
-        print(f"  [note][WARN] セッション確認エラー: {e}")
-        return None
+    # セッション有効確認（複数エンドポイントを試す）
+    check_urls = [
+        "https://note.com/api/v2/users/current_user",
+        "https://note.com/api/v1/users/current_user",
+        "https://note.com/api/v3/users/current_user",
+    ]
+    for check_url in check_urls:
+        try:
+            resp = session.get(check_url, timeout=10)
+            if resp.status_code == 200:
+                try:
+                    nickname = (
+                        resp.json().get("data", {}).get("nickname", "")
+                        or resp.json().get("nickname", "不明")
+                    )
+                except Exception:
+                    nickname = "不明"
+                print(f"  [note] Cookie認証成功: @{nickname}")
+                return session
+            elif resp.status_code in (401, 403):
+                print(f"  [note][WARN] Cookie認証失敗 ({resp.status_code}) — セッション期限切れの可能性")
+                break
+            # 404 は次のエンドポイントを試す
+        except Exception as e:
+            print(f"  [note][WARN] セッション確認エラー ({check_url}): {e}")
+
+    # 検証に失敗しても、NOTE_SESSION_COOKIE が設定されているなら一旦試みる
+    # （_note_session_v5 などは有効な可能性がある）
+    has_session = any(
+        c.name in ("_note_session_v5", "_note_session", "note_session", "note_gss")
+        for c in session.cookies
+    )
+    if has_session:
+        print("  [note] セッションCookie検出 → 検証スキップして投稿を試みます")
+        return session
+
+    print(
+        "  [note][WARN] 有効なセッションCookieが見つかりません\n"
+        "  → scripts/get_note_cookie.py を再実行してNOTE_SESSION_COOKIEを更新してください"
+    )
+    return None
 
 
 # ── ⑥-B ログイン（Playwright ヘッドレスブラウザ） ──
@@ -1117,6 +1140,18 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
     # ── 記事本文生成 ──
     article_body = build_note_article(trend_data, image_urls)
     title = f"【{ISO_WEEK}】Amazon FBA 今週の売れ筋トレンド完全版｜全5カテゴリTOP10"
+
+    # ── CSRFトークンをnote.comから取得（未設定の場合） ──
+    if "X-CSRFToken" not in session.headers:
+        try:
+            r = session.get("https://note.com/", timeout=10)
+            csrf = session.cookies.get("_csrft_", domain=".note.com") \
+                or session.cookies.get("_csrft_")
+            if csrf:
+                session.headers["X-CSRFToken"] = csrf
+                print(f"  [note] CSRFトークン取得: {csrf[:12]}...")
+        except Exception as e:
+            print(f"  [note][WARN] CSRF取得失敗: {e}")
 
     # ── 投稿（公開） ──
     payload = {
