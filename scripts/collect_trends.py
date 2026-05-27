@@ -1153,47 +1153,80 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
         except Exception as e:
             print(f"  [note][WARN] CSRF取得失敗: {e}")
 
-    # ── 投稿（公開） ──
-    payload = {
-        "name":   title,
-        "body":   article_body,
-        "status": "published",
-        "hashtag_note_publishes_attributes": [
-            {"hashtag_name": "Amazon"},
-            {"hashtag_name": "FBA"},
-            {"hashtag_name": "せどり"},
-            {"hashtag_name": "副業"},
-            {"hashtag_name": "物販"},
-            {"hashtag_name": "Amazonせどり"},
-            {"hashtag_name": "副業月収"},
-        ],
-    }
-    # v3 → v2 の順で試す
-    for endpoint in [
-        "https://note.com/api/v3/text_notes",
-        "https://note.com/api/v2/text_notes",
-        "https://note.com/api/v1/text_notes",
-    ]:
-        try:
-            resp = session.post(endpoint, json=payload, timeout=30)
-            print(f"  [note] POST {endpoint} → {resp.status_code}")
-            if resp.status_code in (200, 201):
-                data = resp.json()
-                note_url = (
-                    data.get("data", {}).get("noteUrl", "")
-                    or data.get("data", {}).get("note_url", "")
-                    or data.get("noteUrl", "")
-                )
-                print(f"[OK] note投稿完了: {note_url or '(URL取得失敗)'}")
-                break
-            elif resp.status_code == 404:
-                print(f"  [note] {endpoint} は 404 → 次のエンドポイントを試す")
-                continue
-            else:
-                print(f"[WARN] note投稿失敗 ({resp.status_code}): {resp.text[:300]}")
-                break
-        except Exception as e:
-            print(f"[WARN] note投稿エラー ({endpoint}): {e}")
+    # ── 投稿（複数ペイロード形式を試す） ──
+    hashtags = ["Amazon", "FBA", "せどり", "副業", "物販", "Amazonせどり", "副業月収"]
+
+    # note.com API v1 が受け付けるフォーマットを複数試す
+    payload_candidates = [
+        # 形式1: status="public" + hashtag_note_publishes_attributes
+        {
+            "name":   title,
+            "body":   article_body,
+            "status": "public",
+            "hashtag_note_publishes_attributes": [
+                {"hashtag_name": t} for t in hashtags
+            ],
+        },
+        # 形式2: status="public" のみ（ハッシュタグなし）
+        {
+            "name":   title,
+            "body":   article_body,
+            "status": "public",
+        },
+        # 形式3: text_note ラッパー
+        {
+            "text_note": {
+                "name":   title,
+                "body":   article_body,
+                "status": "public",
+            }
+        },
+        # 形式4: draft=false
+        {
+            "name":   title,
+            "body":   article_body,
+            "draft":  False,
+        },
+    ]
+
+    posted = False
+    for payload in payload_candidates:
+        if posted:
+            break
+        resp = None
+        for endpoint in [
+            "https://note.com/api/v1/text_notes",
+            "https://note.com/api/v2/text_notes",
+        ]:
+            try:
+                resp = session.post(endpoint, json=payload, timeout=30)
+                print(f"  [note] POST {endpoint} → {resp.status_code}")
+                if resp.status_code in (200, 201):
+                    data = resp.json()
+                    note_url = (
+                        data.get("data", {}).get("noteUrl", "")
+                        or data.get("data", {}).get("note_url", "")
+                        or data.get("noteUrl", "")
+                        or data.get("data", {}).get("key", "")
+                    )
+                    if note_url and not note_url.startswith("http"):
+                        note_url = f"https://note.com/n/{note_url}"
+                    print(f"[OK] note投稿完了: {note_url or '(URL取得失敗)'}")
+                    posted = True
+                    break
+                elif resp.status_code == 404:
+                    continue
+                elif resp.status_code == 422:
+                    print(f"  [note] 422エラー詳細: {resp.text[:500]}")
+                    break  # 次のペイロード形式を試す
+                else:
+                    print(f"[WARN] note投稿失敗 ({resp.status_code}): {resp.text[:300]}")
+                    break
+            except Exception as e:
+                print(f"[WARN] note投稿エラー ({endpoint}): {e}")
+
+    if not posted:
+        print("[WARN] 全ペイロード形式で投稿失敗。note.com APIの仕様が変更された可能性があります。")
 
 
 # ────────────────────────────────────────────
