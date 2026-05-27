@@ -1065,6 +1065,208 @@ def _note_login(email: str, password: str) -> requests.Session:
     return session
 
 
+def _post_via_playwright_fetch(cookies: list[dict], title: str, body: str) -> str | None:
+    """
+    Playwrightブラウザ内でfetch()を実行してnote.comに投稿する。
+    ブラウザコンテキスト内でのfetchはCSRFトークンを自動処理できる。
+    """
+    from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
+    print("  [note-pw] Playwrightブラウザ経由で投稿試行中...")
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        )
+        context = browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            locale="ja-JP",
+        )
+        # Cookieをセット
+        pw_cookies = []
+        for c in cookies:
+            domain = c.get("domain", "note.com")
+            if not domain.startswith("."):
+                domain = "." + domain if "note.com" in domain else domain
+            pw_cookies.append({
+                "name":   c.get("name", ""),
+                "value":  c.get("value", ""),
+                "domain": domain if "note.com" in domain else ".note.com",
+                "path":   c.get("path", "/"),
+            })
+        if pw_cookies:
+            context.add_cookies(pw_cookies)
+
+        page = context.new_page()
+        note_url = None
+
+        try:
+            # まずnote.comのトップを開いてセッション確立・CSRF取得
+            page.goto("https://note.com/", wait_until="networkidle", timeout=20000)
+            page.wait_for_timeout(1500)
+            current_url = page.url
+            print(f"  [note-pw] トップURL: {current_url}")
+
+            # ブラウザ内fetchでAPI呼び出し（CSRFは自動）
+            result = page.evaluate("""
+                async ([title, body]) => {
+                    // CSRFトークンを取得
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                    // Cookieから_csrft_を取得
+                    const csrfCookie = document.cookie
+                        .split(';')
+                        .map(c => c.trim())
+                        .find(c => c.startsWith('_csrft_='));
+                    const csrftValue = csrfCookie ? csrfCookie.split('=')[1] : csrfToken;
+
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    };
+                    if (csrftValue) headers['X-CSRFToken'] = csrftValue;
+
+                    const payload = {
+                        name: title,
+                        body: body,
+                        status: 'public',
+                    };
+
+                    // v1を試す
+                    let resp = await fetch('/api/v1/text_notes', {
+                        method: 'POST',
+                        headers: headers,
+                        credentials: 'include',
+                        body: JSON.stringify(payload),
+                    });
+
+                    const text = await resp.text();
+                    return {status: resp.status, body: text.substring(0, 500)};
+                }
+            """, [title, body])
+
+            status = result.get("status", 0)
+            body_text = result.get("body", "")
+            print(f"  [note-pw] fetch結果: {status} / {body_text[:200]}")
+
+            if status in (200, 201):
+                try:
+                    data = json.loads(body_text)
+                    key = (
+                        data.get("data", {}).get("key", "")
+                        or data.get("data", {}).get("id", "")
+                        or data.get("key", "")
+                    )
+                    note_url = f"https://note.com/n/{key}" if key else "https://note.com/"
+                except Exception:
+                    note_url = "https://note.com/"
+                print(f"[OK] note投稿完了（Playwright fetch）: {note_url}")
+            else:
+                print(f"  [note-pw][WARN] fetch失敗 → UI経由で投稿試行")
+                # フォールバック: Playwright UIで投稿
+                note_url = _post_via_playwright_ui(page, title, body)
+
+        except Exception as e:
+            print(f"  [note-pw][WARN] エラー: {e}")
+        finally:
+            browser.close()
+
+    return note_url
+
+
+def _post_via_playwright_ui(page, title: str, body: str) -> str | None:
+    """Playwright UIでnote.comのエディタを操作して記事を投稿する"""
+    from playwright.sync_api import TimeoutError as PWTimeout
+    try:
+        print("  [note-ui] エディタページへ移動...")
+        page.goto("https://note.com/notes/new", wait_until="networkidle", timeout=30000)
+        page.wait_for_timeout(2000)
+
+        if "login" in page.url:
+            print("  [note-ui] ログインページにリダイレクト → セッション無効")
+            return None
+
+        # タイトル入力
+        for sel in [
+            '[data-placeholder*="タイトル"]', '[placeholder*="タイトル"]',
+            'h1[contenteditable]', '.title', 'input[type="text"]',
+        ]:
+            try:
+                el = page.wait_for_selector(sel, timeout=3000, state="visible")
+                if el:
+                    el.click()
+                    page.wait_for_timeout(300)
+                    page.keyboard.type(title[:80], delay=5)
+                    print(f"  [note-ui] タイトル入力: {sel}")
+                    break
+            except Exception:
+                continue
+
+        page.keyboard.press("Tab")
+        page.wait_for_timeout(500)
+
+        # 本文 (最初の3000文字)
+        body_short = body[:3000]
+        for sel in [
+            '.ProseMirror', '[contenteditable="true"]',
+            '.body-editor', '.editor-body',
+        ]:
+            try:
+                el = page.query_selector(sel)
+                if el and el.is_visible():
+                    el.click()
+                    page.wait_for_timeout(300)
+                    page.keyboard.type(body_short, delay=2)
+                    print(f"  [note-ui] 本文入力: {sel}")
+                    break
+            except Exception:
+                continue
+
+        page.wait_for_timeout(1000)
+
+        # 公開ボタン
+        for sel in [
+            'button:has-text("公開")', 'button:has-text("投稿する")',
+            'button:has-text("publish")', '[data-testid*="publish"]',
+        ]:
+            try:
+                page.click(sel, timeout=5000)
+                page.wait_for_timeout(2000)
+                print(f"  [note-ui] 公開クリック: {sel}")
+                break
+            except Exception:
+                continue
+
+        # 確認ダイアログ
+        for sel in [
+            'button:has-text("公開する")', 'button:has-text("送信")',
+        ]:
+            try:
+                page.click(sel, timeout=4000)
+                page.wait_for_timeout(3000)
+                print(f"  [note-ui] 確認クリック: {sel}")
+                break
+            except Exception:
+                continue
+
+        final_url = page.url
+        print(f"  [note-ui] 最終URL: {final_url}")
+        if "/n/" in final_url or "/@" in final_url:
+            print(f"[OK] note投稿完了（UI）: {final_url}")
+            return final_url
+        return None
+
+    except Exception as e:
+        print(f"  [note-ui][WARN] UIエラー: {e}")
+        return None
+
+
 def post_to_note(trend_data: dict[str, Any]) -> None:
     """画像生成→アップロード→ログイン→note.comに記事を投稿する"""
     email    = os.environ.get("NOTE_EMAIL", "")
@@ -1169,7 +1371,29 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
     except Exception as e:
         print(f"  [note][WARN] 認証確認失敗: {e}")
 
-    # ── 投稿（複数ペイロード形式を試す） ──
+    # ── 投稿（Playwright fetch → requests API フォールバック） ──
+
+    # セッションCookieをリスト形式に変換してPlaywright用に渡す
+    cookies_list = [
+        {
+            "name":   c.name,
+            "value":  c.value,
+            "domain": c.domain or "note.com",
+            "path":   c.path or "/",
+        }
+        for c in session.cookies
+    ]
+
+    # 【優先】Playwrightブラウザ内fetchで投稿
+    # ブラウザコンテキストからのfetchはCSRFトークンを自動処理できる
+    if cookies_list:
+        print("  [note] Playwright fetch経由で投稿試行中...")
+        note_url = _post_via_playwright_fetch(cookies_list, title, article_body)
+        if note_url:
+            return  # 投稿成功
+
+    # 【フォールバック】requests API（複数ペイロード形式を試す）
+    print("  [note] Playwright fetch失敗 → requests API フォールバック")
     hashtags = ["Amazon", "FBA", "せどり", "副業", "物販", "Amazonせどり", "副業月収"]
 
     # note.com API v1 が受け付けるフォーマットを複数試す
