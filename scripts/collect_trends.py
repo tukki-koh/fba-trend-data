@@ -725,104 +725,131 @@ def build_note_article(trend_data: dict[str, Any],
     return "\n".join(lines)
 
 
-# ── ⑥ ログイン ──────────────────────────────
+# ── ⑥ ログイン（Playwright ヘッドレスブラウザ） ──
 def _note_login(email: str, password: str) -> requests.Session:
-    """メアドとパスワードでnote.comに自動ログインしてSessionを返す"""
+    """Playwrightを使ってnote.comにログインしてSessionを返す"""
+    from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
+    print("  [note] Playwrightでnote.comにログイン中...")
+    saved_cookies: list[dict] = []
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        )
+        context = browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            locale="ja-JP",
+        )
+        page = context.new_page()
+
+        try:
+            # ① ログインページへ移動
+            page.goto("https://note.com/login", wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(2000)   # JS初期化待ち
+
+            # ② フォームに入力（複数のセレクタを試す）
+            email_selectors = [
+                'input[type="email"]',
+                'input[name="login_id"]',
+                'input[name="email"]',
+                'input[placeholder*="メール"]',
+                'input[placeholder*="mail"]',
+            ]
+            pw_selectors = [
+                'input[type="password"]',
+                'input[name="password"]',
+                'input[placeholder*="パスワード"]',
+            ]
+
+            email_filled = False
+            for sel in email_selectors:
+                try:
+                    page.wait_for_selector(sel, timeout=3000)
+                    page.fill(sel, email)
+                    print(f"  [note] メール入力: {sel}")
+                    email_filled = True
+                    break
+                except PWTimeout:
+                    continue
+
+            if not email_filled:
+                raise RuntimeError("メール入力欄が見つかりません")
+
+            pw_filled = False
+            for sel in pw_selectors:
+                try:
+                    page.fill(sel, password)
+                    print(f"  [note] パスワード入力: {sel}")
+                    pw_filled = True
+                    break
+                except Exception:
+                    continue
+
+            if not pw_filled:
+                raise RuntimeError("パスワード入力欄が見つかりません")
+
+            # ③ ログインボタンをクリック
+            submit_selectors = [
+                'button[type="submit"]',
+                'button:has-text("ログイン")',
+                'button:has-text("sign in")',
+                'input[type="submit"]',
+            ]
+            submitted = False
+            for sel in submit_selectors:
+                try:
+                    page.click(sel, timeout=3000)
+                    submitted = True
+                    break
+                except Exception:
+                    continue
+
+            if not submitted:
+                page.keyboard.press("Enter")
+
+            # ④ ログイン完了を待つ
+            page.wait_for_load_state("networkidle", timeout=30000)
+            current_url = page.url
+            print(f"  [note] ログイン後URL: {current_url}")
+
+            if "login" in current_url or "signup" in current_url:
+                # エラーメッセージを取得
+                err_el = page.query_selector(
+                    "[class*='error'], [class*='Error'], [role='alert']"
+                )
+                msg = err_el.text_content().strip() if err_el else "不明なエラー"
+                raise RuntimeError(f"ログインページから移動できません: {msg}")
+
+            # ⑤ Cookieを保存
+            saved_cookies = context.cookies()
+            print(f"  [note] Cookie取得: {len(saved_cookies)} 件")
+
+        except PWTimeout as e:
+            raise RuntimeError(f"Playwright タイムアウト: {e}")
+        finally:
+            browser.close()
+
+    # ⑥ requestsセッションにCookieをセット
     session = requests.Session()
     session.headers.update({
-        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                           "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        ),
         "Accept":          "application/json, text/plain, */*",
-        "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Language": "ja-JP,ja;q=0.9",
         "Origin":          "https://note.com",
-        "Referer":         "https://note.com/login",
+        "Referer":         "https://note.com/",
     })
+    for c in saved_cookies:
+        session.cookies.set(c["name"], c["value"], domain=c.get("domain", "note.com"))
 
-    # ① ログインページを取得してCookieとCSRFトークンを取得
-    print("  [note] ログインページを取得中...")
-    login_page = session.get("https://note.com/login", timeout=20)
-    print(f"  [note] ログインページ: {login_page.status_code}")
-
-    # Cookie一覧をデバッグ出力
-    for cookie in session.cookies:
-        name = cookie.name
-        val_preview = cookie.value[:20] if cookie.value else ""
-        print(f"  [note] cookie: {name}={val_preview}...")
-
-    # CSRFトークンを取得（複数の方法を試す）
-    csrf = ""
-    # a) レスポンスヘッダから
-    if "x-csrf-token" in login_page.headers:
-        csrf = login_page.headers["x-csrf-token"]
-    # b) Cookieから
-    if not csrf:
-        for cookie in session.cookies:
-            cn = cookie.name.lower()
-            if "csrf" in cn or "xsrf" in cn or "token" in cn:
-                csrf = cookie.value
-                print(f"  [note] CSRF from cookie '{cookie.name}': {csrf[:20]}...")
-                break
-    # c) HTMLのmetaタグから（Next.jsでは通常ない）
-    if not csrf:
-        soup_login = BeautifulSoup(login_page.text, "html.parser")
-        meta_csrf = soup_login.find("meta", {"name": "csrf-token"})
-        if meta_csrf:
-            csrf = meta_csrf.get("content", "")
-    if csrf:
-        session.headers["X-CSRF-Token"] = csrf
-
-    # ② ログインAPIを複数エンドポイントで試す
-    login_payload = {"login": email, "password": password}
-    login_endpoints = [
-        "https://note.com/api/v3/users/sign_in",
-        "https://note.com/api/v1/users/sign_in",
-        "https://note.com/api/v2/users/sign_in",
-    ]
-
-    last_resp = None
-    for endpoint in login_endpoints:
-        print(f"  [note] ログイン試行: {endpoint}")
-        try:
-            resp = session.post(
-                endpoint,
-                json=login_payload,
-                headers={"Content-Type": "application/json"},
-                timeout=20,
-            )
-            print(f"  [note] ログインレスポンス: {resp.status_code}")
-            if resp.status_code in (200, 201):
-                last_resp = resp
-                break
-            elif resp.status_code == 404:
-                print(f"  [note] {endpoint} → 404 (存在しない), 次を試す...")
-                last_resp = resp
-                continue
-            else:
-                print(f"  [note] {endpoint} → {resp.status_code}: {resp.text[:150]}")
-                last_resp = resp
-                continue
-        except Exception as e:
-            print(f"  [note] {endpoint} → 例外: {e}")
-            continue
-
-    if last_resp is None or last_resp.status_code not in (200, 201):
-        status = last_resp.status_code if last_resp else "N/A"
-        body = last_resp.text[:200] if last_resp else ""
-        raise RuntimeError(
-            f"noteログイン失敗: 全エンドポイント試行済。最後のステータス={status}, "
-            f"レスポンス={body}"
-        )
-
-    data = last_resp.json()
-    # ログイン後のCSRFトークンを更新
-    new_csrf = (last_resp.headers.get("X-CSRF-Token")
-                or last_resp.headers.get("x-csrf-token")
-                or data.get("csrf_token", ""))
-    if new_csrf:
-        session.headers["X-CSRF-Token"] = new_csrf
-
-    nickname = data.get("data", {}).get("nickname") or data.get("nickname") or email
-    print(f"[OK] note.com ログイン成功: {nickname}")
+    print("[OK] note.com ログイン成功（Playwright）")
     return session
 
 

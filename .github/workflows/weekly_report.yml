@@ -77,6 +77,9 @@ jobs:
       - name: 依存パッケージのインストール
         run: pip install -r scripts/requirements.txt
 
+      - name: Playwright Chromiumのインストール（noteログイン用）
+        run: playwright install chromium --with-deps
+
       - name: note記事ビジュアル生成・自動投稿
         env:
           PYTHONIOENCODING:     utf-8
