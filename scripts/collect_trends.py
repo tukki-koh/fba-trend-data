@@ -302,6 +302,10 @@ def send_report_emails(emails: list[str]) -> None:
 # 5. note.com 用ビジュアル生成 & 自動投稿
 # ────────────────────────────────────────────
 import io
+import glob
+import subprocess
+import traceback
+import urllib.parse
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -313,6 +317,7 @@ from PIL import Image, ImageDraw, ImageFont
 # ── フォント設定 ──────────────────────────────
 FONT_CANDIDATES = [
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf",
     "/usr/share/fonts/truetype/noto/NotoSansCJKjp-Regular.otf",
     "/usr/share/fonts/noto-cjk/NotoSansCJKjp-Regular.otf",
     "/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf",
@@ -320,11 +325,62 @@ FONT_CANDIDATES = [
     "/Library/Fonts/Arial Unicode.ttf",
 ]
 
+# PIL用テキスト: 絵文字をテキスト代替に置換（latin-1エラー防止）
+_EMOJI_MAP = {
+    "📦": "[FBA]", "📊": "[DATA]", "🗓": "", "✅": "■",
+    "🔥": ">>", "💡": ">>", "🥇": "1.", "🥈": "2.", "🥉": "3.",
+    "🐾": "[PET]", "⛺": "[OUT]", "🍳": "[KIT]", "💄": "[BTY]", "👶": "[BBY]",
+    "📬": "[MAIL]", "👉": ">>", "★": "*",
+}
+
+def _pil_safe(text: str) -> str:
+    """PIL描画用: 絵文字や4バイト文字をASCII代替に置換"""
+    for emoji, replacement in _EMOJI_MAP.items():
+        text = text.replace(emoji, replacement)
+    # BMP外のコードポイント（U+10000以上）を除去
+    return "".join(c for c in text if ord(c) < 0x10000)
+
+
 def _find_font() -> str | None:
+    # 1. 既知パスを直接確認
     for p in FONT_CANDIDATES:
         if os.path.exists(p):
+            print(f"  [font] found (static): {p}")
             return p
+
+    # 2. globで動的検索
+    patterns = [
+        "/usr/share/fonts/**/*CJK*Regular*.ttc",
+        "/usr/share/fonts/**/*CJK*Regular*.otf",
+        "/usr/share/fonts/**/*Noto*CJK*.ttc",
+        "/usr/share/fonts/**/*Noto*CJK*.otf",
+        "/usr/share/fonts/**/*Noto*JP*.otf",
+        "/usr/share/fonts/**/*Noto*JP*.ttf",
+        "/usr/share/fonts/**/*.ttc",
+        "/usr/share/fonts/**/*.otf",
+    ]
+    for pattern in patterns:
+        matches = glob.glob(pattern, recursive=True)
+        if matches:
+            print(f"  [font] found (glob): {matches[0]}")
+            return matches[0]
+
+    # 3. fc-matchで検索
+    try:
+        result = subprocess.run(
+            ["fc-match", ":lang=ja", "-f", "%{file}"],
+            capture_output=True, text=True, timeout=5
+        )
+        path = result.stdout.strip()
+        if path and os.path.exists(path):
+            print(f"  [font] found (fc-match): {path}")
+            return path
+    except Exception as e:
+        print(f"  [font] fc-match failed: {e}")
+
+    print("  [font] WARNING: No Japanese font found, using default")
     return None
+
 
 def _setup_mpl_font() -> None:
     fp = _find_font()
@@ -354,26 +410,39 @@ def generate_header_image() -> bytes:
     draw = ImageDraw.Draw(img)
 
     font_path = _find_font()
+
     def pil_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+        if font_path:
+            try:
+                return ImageFont.truetype(font_path, size)
+            except Exception as e:
+                print(f"  [font] truetype({size}) failed: {e}")
+        # Pillow 10+: load_default with size avoids latin-1 issue
         try:
-            return ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
-        except Exception:
+            return ImageFont.load_default(size=size)
+        except TypeError:
             return ImageFont.load_default()
 
-    # ロゴバッジ
+    # ロゴバッジ（絵文字なしテキスト）
     draw.rounded_rectangle([(60, 60), (420, 120)], radius=10, fill="#f97316")
-    draw.text((75, 72), "📦 FBAトレンドレーダー", font=pil_font(30), fill="white")
+    draw.text((75, 72), _pil_safe("FBAトレンドレーダー"), font=pil_font(30), fill="white")
 
     # メインタイトル
     draw.text((60, 150), "Amazon FBA", font=pil_font(90), fill="white")
-    draw.text((60, 255), "今週の売れ筋完全レポート", font=pil_font(58), fill="#fed7aa")
+    draw.text((60, 255), _pil_safe("今週の売れ筋完全レポート"), font=pil_font(58), fill="#fed7aa")
 
-    # 週ラベル
-    draw.text((60, 360), f"🗓  {ISO_WEEK}　|　毎週火曜 21:00 更新", font=pil_font(32), fill="#fde68a")
+    # 週ラベル（全角スペース→半角に変換）
+    week_label = _pil_safe(f"{ISO_WEEK}  |  毎週火曜 21:00 更新")
+    draw.text((60, 360), week_label, font=pil_font(32), fill="#fde68a")
 
     # 下部バー
     draw.rectangle([(0, 520), (W, 630)], fill="#0f0f1a")
-    badges = ["✅ 全5カテゴリ", "✅ TOP10完全公開", "✅ 価格データつき", "✅ 無料で読める"]
+    badges = [
+        _pil_safe("■ 全5カテゴリ"),
+        _pil_safe("■ TOP10公開"),
+        _pil_safe("■ 価格データつき"),
+        _pil_safe("■ 無料で読める"),
+    ]
     x = 60
     for b in badges:
         draw.text((x, 548), b, font=pil_font(26), fill="#f97316")
@@ -424,7 +493,7 @@ def generate_category_chart(cat_name: str, products: list[dict]) -> bytes:
 
     ax.set_xlim(0, len(items) + 1.8)
     ax.set_xlabel("")
-    ax.set_title(f"📦  {cat_name}　ランキング TOP{len(items)}",
+    ax.set_title(f"{cat_name}  ランキング TOP{len(items)}",
                  fontsize=15, fontweight="bold", pad=14, color="#1c1c2e")
     ax.xaxis.set_visible(False)
     for spine in ["top", "right", "bottom"]:
@@ -467,7 +536,7 @@ def generate_summary_chart(trend_data: dict[str, list[dict]]) -> bytes:
 
     ax.set_ylim(0, max(counts) + 4)
     ax.set_ylabel("取得商品数", fontsize=11, color="#6b7280")
-    ax.set_title("📊  今週のカテゴリ別データ取得数",
+    ax.set_title("今週のカテゴリ別データ取得数",
                  fontsize=14, fontweight="bold", pad=12, color="#1c1c2e")
     ax.yaxis.set_visible(False)
     for spine in ["top", "right", "left"]:
@@ -503,15 +572,19 @@ def _ensure_public_bucket(bucket: str = "note-images") -> None:
 def upload_note_image(image_bytes: bytes, filename: str) -> str:
     """画像をSupabase公開バケットにアップしてpublic URLを返す"""
     _ensure_public_bucket()
-    path = f"{ISO_WEEK}/{filename}"
+    # ファイル名をASCII安全にパーセントエンコード
+    safe_filename = urllib.parse.quote(filename, safe="-._~")
+    path = f"{ISO_WEEK}/{safe_filename}"
     url  = f"{SUPABASE_URL}/storage/v1/object/note-images/{path}"
     headers = {
         "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type":  "image/png",
         "x-upsert":      "true",
     }
-    requests.post(url, headers=headers, data=image_bytes, timeout=30)
-    return f"{SUPABASE_URL}/storage/v1/object/public/note-images/{path}"
+    resp = requests.post(url, headers=headers, data=image_bytes, timeout=30)
+    print(f"  [upload] {filename} → {resp.status_code}")
+    public_path = f"{ISO_WEEK}/{urllib.parse.quote(filename, safe='-._~')}"
+    return f"{SUPABASE_URL}/storage/v1/object/public/note-images/{public_path}"
 
 
 # ── ⑤ 記事本文ビルド ────────────────────────
@@ -638,45 +711,99 @@ def _note_login(email: str, password: str) -> requests.Session:
     """メアドとパスワードでnote.comに自動ログインしてSessionを返す"""
     session = requests.Session()
     session.headers.update({
-        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-                           "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                           "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept":          "application/json, text/plain, */*",
-        "Accept-Language": "ja-JP,ja;q=0.9",
+        "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
         "Origin":          "https://note.com",
         "Referer":         "https://note.com/login",
-        "Content-Type":    "application/json",
     })
 
-    # ① ログインページを取得してCSRFトークンを拾う
-    login_page = session.get("https://note.com/login", timeout=15)
-    csrf = ""
+    # ① ログインページを取得してCookieとCSRFトークンを取得
+    print("  [note] ログインページを取得中...")
+    login_page = session.get("https://note.com/login", timeout=20)
+    print(f"  [note] ログインページ: {login_page.status_code}")
+
+    # Cookie一覧をデバッグ出力
     for cookie in session.cookies:
-        if "csrf" in cookie.name.lower() or "token" in cookie.name.lower():
-            csrf = cookie.value
-            break
-    soup_login = BeautifulSoup(login_page.text, "html.parser")
-    meta_csrf = soup_login.find("meta", {"name": "csrf-token"})
-    if meta_csrf:
-        csrf = meta_csrf.get("content", csrf)
+        name = cookie.name
+        val_preview = cookie.value[:20] if cookie.value else ""
+        print(f"  [note] cookie: {name}={val_preview}...")
+
+    # CSRFトークンを取得（複数の方法を試す）
+    csrf = ""
+    # a) レスポンスヘッダから
+    if "x-csrf-token" in login_page.headers:
+        csrf = login_page.headers["x-csrf-token"]
+    # b) Cookieから
+    if not csrf:
+        for cookie in session.cookies:
+            cn = cookie.name.lower()
+            if "csrf" in cn or "xsrf" in cn or "token" in cn:
+                csrf = cookie.value
+                print(f"  [note] CSRF from cookie '{cookie.name}': {csrf[:20]}...")
+                break
+    # c) HTMLのmetaタグから（Next.jsでは通常ない）
+    if not csrf:
+        soup_login = BeautifulSoup(login_page.text, "html.parser")
+        meta_csrf = soup_login.find("meta", {"name": "csrf-token"})
+        if meta_csrf:
+            csrf = meta_csrf.get("content", "")
     if csrf:
         session.headers["X-CSRF-Token"] = csrf
 
-    # ② ログインAPIを叩く
-    resp = session.post(
+    # ② ログインAPIを複数エンドポイントで試す
+    login_payload = {"login": email, "password": password}
+    login_endpoints = [
         "https://note.com/api/v3/users/sign_in",
-        json={"login": email, "password": password},
-        timeout=15,
-    )
-    if resp.status_code not in (200, 201):
-        raise RuntimeError(f"noteログイン失敗 ({resp.status_code}): {resp.text[:200]}")
+        "https://note.com/api/v1/users/sign_in",
+        "https://note.com/api/v2/users/sign_in",
+    ]
 
-    data = resp.json()
+    last_resp = None
+    for endpoint in login_endpoints:
+        print(f"  [note] ログイン試行: {endpoint}")
+        try:
+            resp = session.post(
+                endpoint,
+                json=login_payload,
+                headers={"Content-Type": "application/json"},
+                timeout=20,
+            )
+            print(f"  [note] ログインレスポンス: {resp.status_code}")
+            if resp.status_code in (200, 201):
+                last_resp = resp
+                break
+            elif resp.status_code == 404:
+                print(f"  [note] {endpoint} → 404 (存在しない), 次を試す...")
+                last_resp = resp
+                continue
+            else:
+                print(f"  [note] {endpoint} → {resp.status_code}: {resp.text[:150]}")
+                last_resp = resp
+                continue
+        except Exception as e:
+            print(f"  [note] {endpoint} → 例外: {e}")
+            continue
+
+    if last_resp is None or last_resp.status_code not in (200, 201):
+        status = last_resp.status_code if last_resp else "N/A"
+        body = last_resp.text[:200] if last_resp else ""
+        raise RuntimeError(
+            f"noteログイン失敗: 全エンドポイント試行済。最後のステータス={status}, "
+            f"レスポンス={body}"
+        )
+
+    data = last_resp.json()
     # ログイン後のCSRFトークンを更新
-    new_csrf = resp.headers.get("X-CSRF-Token") or data.get("csrf_token", "")
+    new_csrf = (last_resp.headers.get("X-CSRF-Token")
+                or last_resp.headers.get("x-csrf-token")
+                or data.get("csrf_token", ""))
     if new_csrf:
         session.headers["X-CSRF-Token"] = new_csrf
 
-    print(f"[OK] note.com ログイン成功: {data.get('nickname') or email}")
+    nickname = data.get("data", {}).get("nickname") or data.get("nickname") or email
+    print(f"[OK] note.com ログイン成功: {nickname}")
     return session
 
 
@@ -689,6 +816,12 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
         print("[SKIP] NOTE_EMAIL / NOTE_PASSWORD が未設定 → note投稿をスキップ")
         return
 
+    # カテゴリ→ASCIIファイル名マッピング
+    CAT_FILENAME = {
+        "ペット用品": "pet", "アウトドア": "outdoor", "キッチン": "kitchen",
+        "ビューティー": "beauty", "ベビー": "baby",
+    }
+
     # ── 画像生成 & アップロード ──
     print("  [note] ヘッダー画像を生成中...")
     image_urls: dict[str, str] = {}
@@ -698,6 +831,7 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
         print(f"  [note] ヘッダー: {image_urls['header']}")
     except Exception as e:
         print(f"  [note][WARN] ヘッダー画像スキップ: {e}")
+        print(traceback.format_exc())
 
     try:
         summary_bytes = generate_summary_chart(trend_data)
@@ -705,17 +839,20 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
         print(f"  [note] サマリーグラフ: {image_urls['summary']}")
     except Exception as e:
         print(f"  [note][WARN] サマリーグラフスキップ: {e}")
+        print(traceback.format_exc())
 
     for cat, products in trend_data.items():
         try:
             chart_bytes = generate_category_chart(cat, products)
             if chart_bytes:
                 key = f"chart_{cat}"
-                safe_name = cat.replace(" ", "_").replace("/", "_")
-                image_urls[key] = upload_note_image(chart_bytes, f"chart_{safe_name}.png")
+                # 日本語カテゴリ名→ASCII安全なファイル名
+                ascii_name = CAT_FILENAME.get(cat, f"cat{list(trend_data.keys()).index(cat)}")
+                image_urls[key] = upload_note_image(chart_bytes, f"chart_{ascii_name}.png")
                 print(f"  [note] {cat}グラフ: {image_urls[key]}")
         except Exception as e:
             print(f"  [note][WARN] {cat}グラフスキップ: {e}")
+            print(traceback.format_exc())
 
     # ── ログイン ──
     try:
