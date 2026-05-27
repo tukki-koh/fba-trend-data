@@ -22,11 +22,30 @@ from typing import Any
 # ────────────────────────────────────────────
 # 設定
 # ────────────────────────────────────────────
-SUPABASE_URL   = os.environ["SUPABASE_URL"]
-SUPABASE_KEY   = os.environ["SUPABASE_SERVICE_KEY"]
-RESEND_API_KEY = os.environ["RESEND_API_KEY"]
-FROM_EMAIL     = os.environ["FROM_EMAIL"]
-SITE_URL       = os.environ["NEXT_PUBLIC_SITE_URL"]
+def _get_secret(name: str, required: bool = True) -> str:
+    """環境変数を取得し、非ASCII文字が含まれていれば早期エラー"""
+    val = os.environ.get(name, "")
+    if not val and required:
+        raise RuntimeError(
+            f"[ERROR] GitHub Secret '{name}' が未設定です。"
+            "リポジトリの Settings → Secrets → Actions で確認してください。"
+        )
+    non_ascii = [(i, c) for i, c in enumerate(val) if ord(c) > 127]
+    if non_ascii:
+        pos, char = non_ascii[0]
+        raise RuntimeError(
+            f"[ERROR] GitHub Secret '{name}' に日本語などの非ASCII文字が含まれています！\n"
+            f"  位置 {pos} に文字 '{char}' (U+{ord(char):04X}) があります。\n"
+            f"  Supabaseダッシュボード → Project Settings → API から正しいキーをコピーして"
+            "GitHubのSecretsを更新してください。"
+        )
+    return val
+
+SUPABASE_URL   = _get_secret("SUPABASE_URL").rstrip("/")
+SUPABASE_KEY   = _get_secret("SUPABASE_SERVICE_KEY")
+RESEND_API_KEY = _get_secret("RESEND_API_KEY", required=False)
+FROM_EMAIL     = _get_secret("FROM_EMAIL", required=False)
+SITE_URL       = _get_secret("NEXT_PUBLIC_SITE_URL", required=False)
 
 TODAY      = datetime.date.today()
 ISO_WEEK   = TODAY.strftime("%Y-W%V")
