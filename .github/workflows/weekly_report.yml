@@ -90,6 +90,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ secrets.SITE_URL }}
           NOTE_EMAIL:           ${{ secrets.NOTE_EMAIL }}
           NOTE_PASSWORD:        ${{ secrets.NOTE_PASSWORD }}
+          NOTE_SESSION_COOKIE:  ${{ secrets.NOTE_SESSION_COOKIE }}
           RUN_MODE:             "note"
         run: python scripts/collect_trends.py
 
