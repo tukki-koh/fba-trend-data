@@ -728,7 +728,97 @@ def build_note_article(trend_data: dict[str, Any],
     return "\n".join(lines)
 
 
-# ── ⑥ ログイン（Playwright ヘッドレスブラウザ） ──
+# ── ⑥-A Cookie注入ログイン（reCAPTCHA完全回避・推奨） ───────────
+def _note_login_from_cookie() -> "requests.Session | None":
+    """
+    NOTE_SESSION_COOKIE 環境変数からセッションを構築してreCAPTCHAを完全回避する。
+
+    NOTE_SESSION_COOKIE の形式（どちらでも可）:
+      ① DevToolsのCookieヘッダーをそのままコピー:
+         "_csrft_=abc123; note_gss=xyz...; _session_id=def..."
+      ② ブラウザ拡張(EditThisCookie等)でJSON出力:
+         [{"name":"_csrft_","value":"abc123","domain":".note.com",...},...]
+
+    取得手順:
+      1. note.com にブラウザでログイン
+      2. DevTools → Network → note.com へのリクエストを選択
+      3. Request Headers の "cookie:" の値をコピー
+      4. GitHub Settings → Secrets → NOTE_SESSION_COOKIE に貼り付け
+    """
+    cookie_str = os.environ.get("NOTE_SESSION_COOKIE", "").strip()
+    if not cookie_str:
+        return None
+
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept":          "application/json, text/plain, */*",
+        "Accept-Language": "ja-JP,ja;q=0.9",
+        "Origin":          "https://note.com",
+        "Referer":         "https://note.com/",
+    })
+
+    csrf_token = ""
+
+    if cookie_str.startswith("[") or cookie_str.startswith("{"):
+        # JSON形式（拡張機能でエクスポート）
+        try:
+            data = json.loads(cookie_str)
+            items = data if isinstance(data, list) else list(data.items())
+            for c in items:
+                if isinstance(c, dict):
+                    n = c.get("name", "")
+                    v = c.get("value", "")
+                    d = c.get("domain", "note.com").lstrip(".")
+                else:
+                    n, v, d = c[0], c[1], "note.com"
+                session.cookies.set(n, v, domain=d)
+                if n == "_csrft_":
+                    csrf_token = v
+        except Exception as e:
+            print(f"  [note][WARN] Cookie JSON解析失敗: {e}")
+            return None
+    else:
+        # "name=value; name2=value2" 形式（DevTools Cookieヘッダー直接コピー）
+        for part in cookie_str.split(";"):
+            part = part.strip()
+            if "=" in part:
+                n, _, v = part.partition("=")
+                n, v = n.strip(), v.strip()
+                session.cookies.set(n, v, domain="note.com")
+                if n == "_csrft_":
+                    csrf_token = v
+
+    if csrf_token:
+        session.headers["X-CSRFToken"] = csrf_token
+        print(f"  [note] CSRFトークン設定: {csrf_token[:12]}...")
+    else:
+        print("  [note][WARN] _csrft_ が見つかりません（投稿が拒否される可能性）")
+
+    # セッション有効確認
+    try:
+        resp = session.get(
+            "https://note.com/api/v1/users/current_user", timeout=10
+        )
+        if resp.status_code == 200:
+            nickname = resp.json().get("data", {}).get("nickname", "不明")
+            print(f"  [note] Cookie認証成功: @{nickname}")
+            return session
+        else:
+            print(
+                f"  [note][WARN] Cookie無効 ({resp.status_code}) — セッションが期限切れです\n"
+                "  → note.comで再ログインし、NOTE_SESSION_COOKIEを更新してください"
+            )
+            return None
+    except Exception as e:
+        print(f"  [note][WARN] セッション確認エラー: {e}")
+        return None
+
+
+# ── ⑥-B ログイン（Playwright ヘッドレスブラウザ） ──
 def _note_login(email: str, password: str) -> requests.Session:
     """Playwrightを使ってnote.comにログインしてSessionを返す"""
     from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
@@ -999,11 +1089,29 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
             print(f"  [note][WARN] {cat}グラフスキップ: {e}")
             print(traceback.format_exc())
 
-    # ── ログイン ──
-    try:
-        session = _note_login(email, password)
-    except Exception as e:
-        print(f"[WARN] noteログインエラー: {e}")
+    # ── ログイン（Cookie優先 → Playwright fallback） ──
+    session = _note_login_from_cookie()   # ① reCAPTCHA不要・推奨
+
+    if session is None and email and password:
+        # ② Cookie未設定の場合はPlaywrightで試みる（reCAPTCHAで失敗する可能性あり）
+        print("  [note] NOTE_SESSION_COOKIE 未設定 → Playwrightでログイン試行")
+        try:
+            session = _note_login(email, password)
+        except Exception as e:
+            print(f"[WARN] noteログインエラー: {e}")
+
+    if session is None:
+        print(
+            "[SKIP] note投稿をスキップしました。\n"
+            "━━━━ note自動投稿を有効にする方法 ━━━━\n"
+            "  1. note.com にブラウザでログイン\n"
+            "  2. DevTools (F12) → Network タブを開く\n"
+            "  3. note.com のいずれかのリクエストを選択\n"
+            "  4. Request Headers の 'cookie:' の値を全てコピー\n"
+            "  5. GitHub → Settings → Secrets → Actions →\n"
+            "     NOTE_SESSION_COOKIE という名前で貼り付け保存\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        )
         return
 
     # ── 記事本文生成 ──
