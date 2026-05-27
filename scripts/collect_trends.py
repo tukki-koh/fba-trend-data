@@ -46,6 +46,9 @@ SUPABASE_KEY   = _get_secret("SUPABASE_SERVICE_KEY")
 RESEND_API_KEY = _get_secret("RESEND_API_KEY", required=False)
 FROM_EMAIL     = _get_secret("FROM_EMAIL", required=False)
 SITE_URL       = _get_secret("NEXT_PUBLIC_SITE_URL", required=False)
+# note.com 用（任意。RUN_MODE=note 時のみ使用）
+NOTE_EMAIL_VAL    = _get_secret("NOTE_EMAIL",    required=False)
+NOTE_PASSWORD_VAL = _get_secret("NOTE_PASSWORD", required=False)
 
 TODAY      = datetime.date.today()
 ISO_WEEK   = TODAY.strftime("%Y-W%V")
@@ -736,7 +739,12 @@ def _note_login(email: str, password: str) -> requests.Session:
     with sync_playwright() as pw:
         browser = pw.chromium.launch(
             headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled",
+            ],
         )
         context = browser.new_context(
             user_agent=(
@@ -744,15 +752,22 @@ def _note_login(email: str, password: str) -> requests.Session:
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             ),
             locale="ja-JP",
+            viewport={"width": 1280, "height": 800},
+            extra_http_headers={"Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8"},
+        )
+        # webdriver フラグを隠してボット検知を回避
+        context.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
         )
         page = context.new_page()
 
         try:
-            # ① ログインページへ移動
-            page.goto("https://note.com/login", wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(2000)   # JS初期化待ち
+            # ① ログインページへ移動（networkidle で JS 完全ロード待ち）
+            page.goto("https://note.com/login", wait_until="networkidle", timeout=30000)
+            page.wait_for_timeout(2000)
+            print(f"  [note] ログインページ読み込み完了: {page.url}")
 
-            # ② フォームに入力（複数のセレクタを試す）
+            # ② メールアドレス入力（クリック → 実キー入力）
             email_selectors = [
                 'input[type="email"]',
                 'input[name="login_id"]',
@@ -760,72 +775,145 @@ def _note_login(email: str, password: str) -> requests.Session:
                 'input[placeholder*="メール"]',
                 'input[placeholder*="mail"]',
             ]
+            email_filled = False
+            for sel in email_selectors:
+                try:
+                    el = page.wait_for_selector(sel, timeout=3000, state="visible")
+                    if el:
+                        el.click()
+                        page.wait_for_timeout(300)
+                        el.type(email, delay=60)   # 実キー入力でイベント発火
+                        page.wait_for_timeout(500)
+                        print(f"  [note] メール入力完了: {sel}")
+                        email_filled = True
+                        break
+                except PWTimeout:
+                    continue
+                except Exception as ex:
+                    print(f"  [note] メールselector失敗 {sel}: {ex}")
+                    continue
+
+            if not email_filled:
+                content_snip = page.content()[:3000]
+                print(f"  [note] ページHTML(デバッグ): {content_snip}")
+                raise RuntimeError("メール入力欄が見つかりません")
+
+            # ③ パスワード欄がまだ非表示なら「次へ」ボタンを押す（2段階フォーム対応）
+            pw_visible = False
+            pw_el = page.query_selector('input[type="password"]')
+            if pw_el:
+                try:
+                    pw_visible = pw_el.is_visible()
+                except Exception:
+                    pass
+
+            if not pw_visible:
+                print("  [note] パスワード欄が非表示 → 「次へ」ボタンを押す")
+                for sel in [
+                    'button[type="submit"]',
+                    'button:has-text("次へ")',
+                    'button:has-text("続ける")',
+                    'button:has-text("Next")',
+                ]:
+                    try:
+                        page.click(sel, timeout=3000)
+                        page.wait_for_timeout(2500)
+                        print(f"  [note] 「次へ」クリック: {sel}")
+                        break
+                    except Exception:
+                        continue
+
+            # ④ パスワード入力
             pw_selectors = [
                 'input[type="password"]',
                 'input[name="password"]',
                 'input[placeholder*="パスワード"]',
             ]
-
-            email_filled = False
-            for sel in email_selectors:
-                try:
-                    page.wait_for_selector(sel, timeout=3000)
-                    page.fill(sel, email)
-                    print(f"  [note] メール入力: {sel}")
-                    email_filled = True
-                    break
-                except PWTimeout:
-                    continue
-
-            if not email_filled:
-                raise RuntimeError("メール入力欄が見つかりません")
-
             pw_filled = False
             for sel in pw_selectors:
                 try:
-                    page.fill(sel, password)
-                    print(f"  [note] パスワード入力: {sel}")
-                    pw_filled = True
-                    break
-                except Exception:
+                    el = page.wait_for_selector(sel, timeout=5000, state="visible")
+                    if el:
+                        el.click()
+                        page.wait_for_timeout(300)
+                        el.type(password, delay=60)
+                        page.wait_for_timeout(500)
+                        print(f"  [note] パスワード入力完了: {sel}")
+                        pw_filled = True
+                        break
+                except PWTimeout:
+                    print(f"  [note] パスワードselector timeout: {sel}")
+                    continue
+                except Exception as ex:
+                    print(f"  [note] パスワードselector失敗 {sel}: {ex}")
                     continue
 
             if not pw_filled:
+                content_snip = page.content()[2000:5000]
+                print(f"  [note] パスワード欄なし ページHTML: {content_snip}")
                 raise RuntimeError("パスワード入力欄が見つかりません")
 
-            # ③ ログインボタンをクリック
-            submit_selectors = [
+            # ⑤ ログインボタンをクリック
+            page.wait_for_timeout(400)
+            submitted = False
+            for sel in [
                 'button[type="submit"]',
                 'button:has-text("ログイン")',
+                'button:has-text("サインイン")',
                 'button:has-text("sign in")',
                 'input[type="submit"]',
-            ]
-            submitted = False
-            for sel in submit_selectors:
+            ]:
                 try:
                     page.click(sel, timeout=3000)
                     submitted = True
+                    print(f"  [note] ログインボタンクリック: {sel}")
                     break
                 except Exception:
                     continue
 
             if not submitted:
                 page.keyboard.press("Enter")
+                print("  [note] Enter送信")
 
-            # ④ ログイン完了を待つ
-            page.wait_for_load_state("networkidle", timeout=30000)
+            # ⑥ URL変化を待つ（loginページから離れたら成功）
+            try:
+                page.wait_for_url(
+                    lambda url: "note.com/login" not in url,
+                    timeout=20000,
+                )
+                print("  [note] URLが変化 → ログイン成功と判断")
+            except PWTimeout:
+                print("  [note] URL変化タイムアウト（20秒）、状態を確認中...")
+
+            page.wait_for_timeout(2000)
             current_url = page.url
             print(f"  [note] ログイン後URL: {current_url}")
 
             if "login" in current_url or "signup" in current_url:
-                # エラーメッセージを取得
-                err_el = page.query_selector(
-                    "[class*='error'], [class*='Error'], [role='alert']"
+                # エラーメッセージを全セレクタで探す
+                err_msgs = []
+                for err_sel in [
+                    "[class*='error']", "[class*='Error']", "[role='alert']",
+                    ".o-errorMessage", "[class*='invalid']", "p[class*='red']",
+                ]:
+                    err_el = page.query_selector(err_sel)
+                    if err_el:
+                        try:
+                            msg = err_el.text_content().strip()
+                            if msg:
+                                err_msgs.append(msg)
+                        except Exception:
+                            pass
+                err_text = " / ".join(err_msgs) if err_msgs else "不明なエラー"
+                # ページHTML一部を出力してデバッグ
+                html_chunk = page.content()
+                print(f"  [note] ページHTML(3000-5500): {html_chunk[3000:5500]}")
+                raise RuntimeError(
+                    f"ログイン失敗: {err_text}\n"
+                    "→ NOTE_EMAIL / NOTE_PASSWORD が正しいか確認してください"
                 )
-                msg = err_el.text_content().strip() if err_el else "不明なエラー"
-                raise RuntimeError(f"ログインページから移動できません: {msg}")
 
-            # ⑤ Cookieを保存
+            # ⑦ Cookieを保存
             saved_cookies = context.cookies()
             print(f"  [note] Cookie取得: {len(saved_cookies)} 件")
 
@@ -834,7 +922,7 @@ def _note_login(email: str, password: str) -> requests.Session:
         finally:
             browser.close()
 
-    # ⑥ requestsセッションにCookieをセット
+    # ⑧ requestsセッションを構築
     session = requests.Session()
     session.headers.update({
         "User-Agent": (
@@ -846,8 +934,19 @@ def _note_login(email: str, password: str) -> requests.Session:
         "Origin":          "https://note.com",
         "Referer":         "https://note.com/",
     })
+
+    # CSRFトークンを Cookie から抽出して X-CSRFToken ヘッダーに設定
+    csrf_token = ""
     for c in saved_cookies:
         session.cookies.set(c["name"], c["value"], domain=c.get("domain", "note.com"))
+        if c["name"] == "_csrft_":
+            csrf_token = c["value"]
+
+    if csrf_token:
+        session.headers["X-CSRFToken"] = csrf_token
+        print(f"  [note] CSRFトークン設定: {csrf_token[:12]}...")
+    else:
+        print("  [note][WARN] CSRFトークン(_csrft_)が見つかりません")
 
     print("[OK] note.com ログイン成功（Playwright）")
     return session
@@ -912,32 +1011,46 @@ def post_to_note(trend_data: dict[str, Any]) -> None:
     title = f"【{ISO_WEEK}】Amazon FBA 今週の売れ筋トレンド完全版｜全5カテゴリTOP10"
 
     # ── 投稿（公開） ──
-    try:
-        resp = session.post(
-            "https://note.com/api/v2/text_notes",
-            json={
-                "name":   title,
-                "body":   article_body,
-                "status": "published",
-                "hashtag_note_publishes_attributes": [
-                    {"hashtag_name": "Amazon"},
-                    {"hashtag_name": "FBA"},
-                    {"hashtag_name": "せどり"},
-                    {"hashtag_name": "副業"},
-                    {"hashtag_name": "物販"},
-                    {"hashtag_name": "Amazonせどり"},
-                    {"hashtag_name": "副業月収"},
-                ],
-            },
-            timeout=30,
-        )
-        if resp.status_code in (200, 201):
-            note_url = resp.json().get("data", {}).get("noteUrl", "")
-            print(f"[OK] note投稿完了: {note_url or '(URL取得失敗)'}")
-        else:
-            print(f"[WARN] note投稿失敗 ({resp.status_code}): {resp.text[:200]}")
-    except Exception as e:
-        print(f"[WARN] note投稿エラー: {e}")
+    payload = {
+        "name":   title,
+        "body":   article_body,
+        "status": "published",
+        "hashtag_note_publishes_attributes": [
+            {"hashtag_name": "Amazon"},
+            {"hashtag_name": "FBA"},
+            {"hashtag_name": "せどり"},
+            {"hashtag_name": "副業"},
+            {"hashtag_name": "物販"},
+            {"hashtag_name": "Amazonせどり"},
+            {"hashtag_name": "副業月収"},
+        ],
+    }
+    # v3 → v2 の順で試す
+    for endpoint in [
+        "https://note.com/api/v3/text_notes",
+        "https://note.com/api/v2/text_notes",
+        "https://note.com/api/v1/text_notes",
+    ]:
+        try:
+            resp = session.post(endpoint, json=payload, timeout=30)
+            print(f"  [note] POST {endpoint} → {resp.status_code}")
+            if resp.status_code in (200, 201):
+                data = resp.json()
+                note_url = (
+                    data.get("data", {}).get("noteUrl", "")
+                    or data.get("data", {}).get("note_url", "")
+                    or data.get("noteUrl", "")
+                )
+                print(f"[OK] note投稿完了: {note_url or '(URL取得失敗)'}")
+                break
+            elif resp.status_code == 404:
+                print(f"  [note] {endpoint} は 404 → 次のエンドポイントを試す")
+                continue
+            else:
+                print(f"[WARN] note投稿失敗 ({resp.status_code}): {resp.text[:300]}")
+                break
+        except Exception as e:
+            print(f"[WARN] note投稿エラー ({endpoint}): {e}")
 
 
 # ────────────────────────────────────────────
