@@ -94,6 +94,16 @@ jobs:
           RUN_MODE:             "note"
         run: python scripts/collect_trends.py
 
+      - name: Instagram素材をArtifactとして保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instagram-${{ github.run_number }}
+          path: |
+            /tmp/instagram_*.png
+            /tmp/instagram_*_caption.txt
+          retention-days: 14
+
       - name: 失敗時のアラート
         if: failure()
         run: echo "⚠️ note投稿失敗。GitHub Actionsのログを確認してください。"

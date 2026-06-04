@@ -1503,4 +1503,13 @@ if __name__ == "__main__":
         print("\n[NOTE] note.com に記事を自動投稿中...")
         post_to_note(trends)
 
+        print("\n[INSTAGRAM] Instagram投稿素材を生成中...")
+        try:
+            from generate_instagram import generate_instagram_content
+            generate_instagram_content(trends)
+        except Exception as e:
+            import traceback as _tb
+            print(f"[WARN] Instagram生成エラー: {e}")
+            print(_tb.format_exc())
+
     print("\n=== 完了 ===")
