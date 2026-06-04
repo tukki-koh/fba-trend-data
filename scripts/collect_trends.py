@@ -83,44 +83,129 @@ def make_headers() -> dict[str, str]:
 # ────────────────────────────────────────────
 def scrape_bestsellers(url: str) -> list[dict[str, Any]]:
     """Amazon の公開ベストセラーページから商品情報を取得"""
-    try:
-        resp = requests.get(url, headers=make_headers(), timeout=15)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"[WARN] fetch failed: {url} → {e}")
+    # セッションとリトライ設定
+    session = requests.Session()
+    headers = make_headers()
+    headers.update({
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Upgrade-Insecure-Requests": "1",
+    })
+
+    html = ""
+    for attempt in range(3):
+        try:
+            resp = session.get(url, headers=headers, timeout=20)
+            resp.raise_for_status()
+            html = resp.text
+            if "api-services-support@amazon.com" in html or len(html) < 5000:
+                print(f"  [WARN] ブロック検知 attempt={attempt+1}, retrying...")
+                time.sleep(random.uniform(8, 15))
+                continue
+            break
+        except Exception as e:
+            print(f"[WARN] fetch failed attempt={attempt+1}: {url} → {e}")
+            time.sleep(random.uniform(5, 10))
+
+    if not html:
         return []
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     products = []
 
-    # ベストセラーの商品カード（複数のセレクタに対応）
-    cards = soup.select("div.zg-grid-general-faceout") or soup.select("li.zg-item-immersion")
+    # カードセレクター（Amazon HTMLの複数パターンに対応）
+    cards = (
+        soup.select("div.zg-grid-general-faceout")
+        or soup.select("li.zg-item-immersion")
+        or soup.select("div[data-asin]")
+        or soup.select("div.p13n-gridRow div[data-index]")
+    )
+
+    # タイトル取得用セレクター（優先度順）
+    TITLE_SELECTORS = [
+        "div.p13n-sc-truncate-desktop-type2",
+        "span._cDEzb_p13n-sc-css-line-clamp-1_1Fn1y",
+        "span._cDEzb_p13n-sc-css-line-clamp-3_1Fn1y",
+        "div._cDEzb_p13n-sc-css-line-clamp-1_1Fn1y",
+        "div._cDEzb_p13n-sc-css-line-clamp-3_1Fn1y",
+        "span.a-size-small.a-color-base",
+        "span.a-truncate-cut",
+        "div[class*='truncate']",
+        "span[class*='line-clamp']",
+        "a.a-link-normal span",
+        "img[alt]",  # altテキストをフォールバックに使う
+    ]
+    PRICE_SELECTORS = [
+        "span.p13n-sc-price",
+        "span._cDEzb_p13n-sc-price_3mJ9Z",
+        "span.a-price .a-offscreen",
+        "span[class*='price']",
+        "span.a-color-price",
+    ]
 
     for i, card in enumerate(cards[:20], 1):
-        title_el = card.select_one("div.p13n-sc-truncate-desktop-type2, span.zg-text-center-align, div._cDEzb_p13n-sc-css-line-clamp-1_1Fn1y")
-        price_el = card.select_one("span.p13n-sc-price, span._cDEzb_p13n-sc-price_3mJ9Z")
-        asin_el  = card.select_one("a[href*='/dp/']")
+        # タイトル
+        title = ""
+        for sel in TITLE_SELECTORS:
+            el = card.select_one(sel)
+            if el:
+                if sel == "img[alt]":
+                    title = el.get("alt", "").strip()
+                else:
+                    title = el.get_text(strip=True)
+                if title and title != "商品名取得中":
+                    break
 
-        title = title_el.get_text(strip=True) if title_el else "商品名取得中"
-        price = price_el.get_text(strip=True) if price_el else "-"
-        asin  = ""
+        # ASINをhrefから抽出
+        asin = ""
+        asin_el = card.select_one("a[href*='/dp/']")
+        if not asin_el:
+            asin_el = card.select_one("a[href*='/gp/product/']")
         if asin_el:
             href = asin_el.get("href", "")
-            parts = [p for p in href.split("/") if p]
-            if "dp" in parts:
-                dp_idx = parts.index("dp")
-                asin = parts[dp_idx + 1] if dp_idx + 1 < len(parts) else ""
+            for marker in ["/dp/", "/gp/product/"]:
+                if marker in href:
+                    after = href.split(marker)[1]
+                    asin = after.split("/")[0].split("?")[0]
+                    break
+
+        # data-asin属性からも試みる
+        if not asin:
+            asin = card.get("data-asin", "")
+
+        # タイトルがまだ空なら画像altを試みる
+        if not title:
+            img = card.select_one("img")
+            if img:
+                title = img.get("alt", "").strip()
+        if not title:
+            title = f"商品{i}"
+
+        # 価格
+        price = ""
+        for sel in PRICE_SELECTORS:
+            el = card.select_one(sel)
+            if el:
+                price = el.get_text(strip=True)
+                if price:
+                    break
 
         products.append({
             "rank":  i,
             "title": title[:50],
-            "price": price,
+            "price": price or "-",
             "asin":  asin,
             "url":   f"https://www.amazon.co.jp/dp/{asin}" if asin else "",
         })
 
+    print(f"  → {len(products)}件取得 (タイトル取得済: {sum(1 for p in products if p['title'] not in ['商品名取得中', ''] and not p['title'].startswith('商品'))}件)")
     # リクエスト間隔（ブロック対策）
-    time.sleep(random.uniform(3, 6))
+    time.sleep(random.uniform(5, 10))
     return products
 
 
