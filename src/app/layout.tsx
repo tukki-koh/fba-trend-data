@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     "Amazon FBA", "せどり", "Amazon売れ筋", "FBA仕入れ", "Amazonトレンド",
     "物販", "副業", "Amazon転売", "ベストセラー", "週次レポート",
     "商品リサーチ", "FBA出品", "Amazon物販", "仕入れデータ",
+    "Amazonランキング", "FBAトレンドレーダー", "仕入れリサーチ効率化",
   ],
   authors: [{ name: "FBAトレンドレーダー" }],
   creator: "FBAトレンドレーダー",
@@ -61,6 +62,11 @@ export const metadata: Metadata = {
   verification: {
     google: "yRI78JJGL2gw663JYPdPRHUFfWEef4FQLNvZOC8x18k",
   },
+  other: {
+    // GEO: AIクローラー向け追加メタ情報
+    "speakable-selector": "h1, h2, [data-speakable]",
+    "content-language": "ja",
+  },
 };
 
 export default function RootLayout({
@@ -73,6 +79,11 @@ export default function RootLayout({
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* GEO: AIクローラーへの追加シグナル */}
+        <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <link rel="me" href={SITE_URL} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
