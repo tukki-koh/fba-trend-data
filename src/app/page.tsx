@@ -5,42 +5,42 @@ import Script from "next/script";
 import FreeSampleForm from "@/components/FreeSampleForm";
 
 export const metadata: Metadata = {
-  title: "FBAトレンドレーダー｜Amazon売れ筋トレンドを毎週自動配信",
+  title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
   description:
-    "Amazon FBA出品者・せどらー向けに全5カテゴリの売れ筋ランキングTOP10を毎週月曜に自動配信。仕入れ判断・商品リサーチを効率化。月額3,980円〜・14日返金保証。まず無料サンプルを受け取れます。",
+    "毎週月曜の朝、Amazon JPの売れ筋ランキングTOP10をPDFでお届けします。ペット・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ。月額3,980円〜、まず無料サンプルで確認できます。",
 };
 
 const PLANS = [
   {
     name: "スタンダード",
     price: "3,980",
-    description: "副業FBA出品者向け",
+    description: "週1回のリサーチで十分な方に",
     features: [
-      "週次トレンドレポート（PDF）",
-      "全5カテゴリ TOP10ランキング",
-      "急上昇商品・注目キーワード",
-      "毎週月曜 AM7:00 自動配信",
-      "過去4週分のアーカイブ閲覧",
-      "14日間返金保証",
+      "週次トレンドレポート（PDF形式）",
+      "5カテゴリ × TOP10の商品データ",
+      "各商品の現在価格・Amazonリンクつき",
+      "毎週月曜 AM7:00 にメール配信",
+      "過去4週ぶんのレポートをマイページで閲覧可",
+      "14日以内なら理由なしで全額返金",
     ],
-    cta: "スタンダードで始める",
+    cta: "スタンダードプランで始める",
     href: "/checkout?plan=standard",
     highlight: false,
   },
   {
     name: "プロ",
     price: "9,800",
-    description: "本業・法人FBA出品者向け",
+    description: "本腰を入れて仕入れデータを使い倒したい方に",
     features: [
-      "スタンダードの全機能",
-      "全20カテゴリ詳細データ",
+      "スタンダードの内容すべて",
+      "20カテゴリに拡張したデータ",
       "競合出品者の価格変動アラート",
-      "新規参入商品の急騰データ",
-      "Excelデータ(.xlsx)ダウンロード",
-      "過去3ヶ月アーカイブ閲覧",
-      "14日間返金保証",
+      "急に順位が上がった新規商品の通知",
+      "Excelファイル（.xlsx）でのダウンロード",
+      "過去3ヶ月ぶんのアーカイブ",
+      "14日以内なら理由なしで全額返金",
     ],
-    cta: "プロで始める",
+    cta: "プロプランで始める",
     href: "/checkout?plan=pro",
     highlight: true,
   },
@@ -48,36 +48,36 @@ const PLANS = [
 
 const FAQS = [
   {
-    q: "どんなデータが届きますか？",
-    a: "Amazon Japanの各カテゴリで急上昇している商品の売れ筋ランキング・価格データ・注目商品をまとめたPDFレポートが毎週届きます。",
+    q: "具体的にどんなデータが入っていますか？",
+    a: "ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリについて、Amazon JPのベストセラーTOP10をランキング順に並べたPDFです。商品名・現在価格・AmazonへのリンクURLが載っています。見た目はシンプルですが、仕入れリサーチの起点としてそのまま使えるように作っています。",
   },
   {
-    q: "いつレポートが届きますか？",
-    a: "毎週月曜日の朝7時に、登録メールアドレスへ自動送信されます。",
+    q: "毎週いつ届きますか？",
+    a: "月曜の朝7時を目安に、登録したメールアドレスへ送っています。データは日曜夜〜月曜早朝に収集しているので、週明けの仕入れ判断にそのまま使っていただけます。",
   },
   {
-    q: "無料サンプルとは何ですか？",
-    a: "メールアドレスを入力するだけで最新レポートを1回無料でお届けします。クレジットカード不要で、品質を確認してからご契約いただけます。",
+    q: "無料サンプルはどういう仕組みですか？",
+    a: "メールアドレスを入力するだけで、直近の週次レポートを1部お送りします。カード登録は不要です。「どんな内容か確認してから検討したい」という方向けです。",
   },
   {
-    q: "解約はいつでもできますか？",
-    a: "はい。マイページから1クリックでいつでも解約できます。違約金・解約手数料は一切ありません。",
+    q: "合わなかったらすぐ解約できますか？",
+    a: "できます。マイページから手続きができて、次の月から請求は止まります。解約金や手数料はありません。",
   },
   {
-    q: "14日返金保証とは？",
-    a: "ご契約から14日以内であれば、理由を問わず全額返金します。まずお試しください。",
+    q: "14日返金保証というのは？",
+    a: "有料プランに登録してから14日以内であれば、理由に関わらず全額返金します。「思っていたのと違った」でも構いません。",
   },
   {
-    q: "データの精度はどのくらいですか？",
-    a: "Amazon Japan公式の公開ベストセラーページから毎週収集した最新データを使用しています。毎週月曜の朝に自動更新されます。",
+    q: "データはどこから取っているんですか？",
+    a: "Amazon JPの公式ベストセラーページ（誰でも見られる公開情報）から毎週自動で収集しています。特別なAPIは使っていないので、Amazonの表示と大きくずれることはありません。",
   },
   {
-    q: "スマホでも見られますか？",
-    a: "はい。PDFレポートはスマートフォン・タブレット・PCすべてで閲覧できます。マイページもスマホ対応しています。",
+    q: "スマホで見られますか？",
+    a: "PDFなのでスマホでも普通に開けます。マイページもスマホから使えます。",
   },
   {
-    q: "どのカテゴリのデータが届きますか？",
-    a: "ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリのTOP10ランキングが届きます。プロプランでは20カテゴリに拡大されます。",
+    q: "プロプランとの違いは何ですか？",
+    a: "スタンダードは5カテゴリ、プロは20カテゴリに増えます。加えて、Excelファイルでのダウンロードと、競合出品者の価格変動アラートがつきます。副業でやっている方にはスタンダードで十分なことが多いです。",
   },
 ];
 
@@ -186,28 +186,27 @@ export default function HomePage() {
 
       {/* ── お知らせバー ── */}
       <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-sm text-center py-2.5 pt-16">
-        毎週月曜 AM7:00 に最新レポートを自動配信中 ―
-        <a href="#free-sample" className="font-semibold underline ml-1 hover:text-amber-900">まず無料で受け取る →</a>
+        毎週月曜 AM7:00 配信中 —
+        <a href="#free-sample" className="font-semibold underline ml-1 hover:text-amber-900">無料サンプルを受け取る</a>
       </div>
 
       {/* ── ヒーロー ── */}
       <section className="pt-12 pb-20 px-4 bg-gradient-to-b from-amber-50/70 to-[#fafaf9]">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            <Zap size={14} /> Amazon FBA出品者・せどらー向け
+            <Zap size={14} /> Amazon FBA・せどり向けデータ配信
           </div>
           <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight mb-6 text-gray-900" data-speakable>
-            今週<span className="text-amber-600">Amazon で売れる商品</span>を<br />
-            データで先回りする
+            仕入れリサーチ、<br />
+            <span className="text-amber-600">週1回のメールだけ</span>で済ませる
           </h1>
-          <p className="text-lg text-gray-600 mb-3 leading-relaxed" data-speakable>
-            全5カテゴリのベストセラーランキングTOP10を毎週自動収集。<br className="hidden md:block" />
-            仕入れリサーチの時間をゼロにして、利益を最大化。
+          <p className="text-lg text-gray-600 mb-4 leading-relaxed" data-speakable>
+            Amazon JPのベストセラーTOP10を毎週月曜の朝にお届けします。<br className="hidden md:block" />
+            ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ。
           </p>
-          <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-            FBAトレンドレーダーは、Amazon Japanの公開ベストセラーページから
-            ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリを毎週収集し、
-            PDFレポートとして月曜AM7:00に配信するサービスです。
+          <p className="text-sm text-gray-500 mb-8 leading-relaxed max-w-xl mx-auto">
+            自分でリサーチすると1カテゴリでも30分以上かかります。
+            このサービスはそこを自動化して、月曜の朝に届く1通のメールに全部まとめています。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-4">
             <Link href="/checkout?plan=standard"
@@ -216,10 +215,10 @@ export default function HomePage() {
             </Link>
             <a href="#free-sample"
               className="inline-flex items-center justify-center gap-2 border border-amber-300 text-amber-700 hover:bg-amber-50 text-base font-semibold px-8 py-4 rounded-2xl transition-colors bg-white">
-              <Gift size={18} /> まず無料で試す
+              <Gift size={18} /> まず無料で中身を確認する
             </a>
           </div>
-          <p className="text-sm text-gray-400">14日間返金保証 ／ クレジットカード不要でキャンセル可</p>
+          <p className="text-sm text-gray-400">14日間返金保証 ／ 解約はマイページから1クリック</p>
         </div>
       </section>
 
@@ -243,53 +242,42 @@ export default function HomePage() {
       {/* ── 無料サンプルセクション ── */}
       <section id="free-sample" className="py-20 px-4 bg-gradient-to-b from-amber-50/50 to-[#fafaf9]">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            <Gift size={14} /> 完全無料・クレジットカード不要
-          </div>
           <h2 className="text-3xl font-bold mb-4 text-gray-900">
-            まず<span className="text-amber-600">無料</span>でレポートを受け取る
+            まずレポートの中身を見てみる
           </h2>
-          <p className="text-gray-600 mb-8 leading-relaxed">
-            メールアドレスを入力するだけで、最新の週次レポートを<strong>1回無料</strong>でお届けします。<br />
-            品質を確認してから有料プランをご検討いただけます。
+          <p className="text-gray-600 mb-2 leading-relaxed">
+            メールアドレスだけで、直近の週次レポートを1部お送りします。
           </p>
+          <p className="text-gray-500 text-sm mb-8">カード登録なし。気に入らなければそのまま終わりで大丈夫です。</p>
           <FreeSampleForm />
-          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-500">
-            {["✅ 登録30秒", "✅ カード不要", "✅ いつでも配信停止可", "✅ 迷惑メールなし"].map((t) => (
-              <span key={t}>{t}</span>
-            ))}
-          </div>
+          <p className="mt-6 text-xs text-gray-400">登録後は毎週月曜に配信案内が届きます。不要になったらいつでも停止できます。</p>
         </div>
       </section>
 
       {/* ── 課題 → 解決 ── */}
       <section className="py-20 px-4 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-14 text-gray-900">こんな悩みを抱えていませんか？</h2>
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">仕入れリサーチって、思った以上に時間がかかる</h2>
+          <p className="text-gray-600 leading-relaxed mb-6">
+            Amazon FBAで物販をやっていると、何を仕入れるかを決めるまでに
+            けっこうな時間を取られます。カテゴリを1つ見るだけでも、
+            ランキングを確認して、価格を調べて、ライバルの数を確認して……
+            気づいたら1〜2時間経っていることもあります。
+          </p>
+          <p className="text-gray-600 leading-relaxed mb-10">
+            それが5カテゴリあると、毎週のリサーチだけで半日近くかかることも珍しくありません。
+            このサービスを作ったのは、そのリサーチ作業を週1通のメールに置き換えたかったからです。
+          </p>
+
+          <div className="border-l-4 border-amber-400 pl-6 space-y-5">
             {[
-              "何を仕入れればいいかわからない",
-              "リサーチに毎週10時間以上かかっている",
-              "売れると思った商品がすぐレッドオーシャンになる",
-              "競合が何を仕入れているか全くわからない",
-            ].map((pain) => (
-              <div key={pain} className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-xl p-5">
-                <span className="text-red-400 mt-0.5 text-xl">✕</span>
-                <span className="text-gray-800 font-medium">{pain}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 text-center text-2xl font-bold text-gray-400">↓ FBAトレンドレーダーで解決</div>
-          <div className="grid md:grid-cols-2 gap-6 mt-10">
-            {[
-              "今週急上昇中のカテゴリ・商品がひと目でわかる",
-              "リサーチ時間をほぼゼロに削減できる",
-              "トレンドを1〜2週早く掴んでブルーオーシャンで勝負",
-              "データに基づいた仕入れ判断ができる",
-            ].map((sol) => (
-              <div key={sol} className="flex items-start gap-3 bg-green-50 border border-green-100 rounded-xl p-5">
-                <CheckCircle className="text-green-500 mt-0.5 shrink-0" size={20} />
-                <span className="text-gray-800 font-medium">{sol}</span>
+              { before: "5カテゴリを自分で毎週確認する", after: "月曜の朝にメールが届いているので開くだけ" },
+              { before: "売れ筋商品を見つけても価格を別で調べ直す", after: "レポートに価格とAmazonリンクが最初からついている" },
+              { before: "どのカテゴリが今週伸びているかわからない", after: "5カテゴリの順位データが1枚のPDFで並んでいる" },
+            ].map((item) => (
+              <div key={item.before}>
+                <p className="text-sm text-gray-400 line-through">{item.before}</p>
+                <p className="text-gray-800 font-medium mt-1">{item.after}</p>
               </div>
             ))}
           </div>
@@ -298,31 +286,31 @@ export default function HomePage() {
 
       {/* ── レポート内容 ── */}
       <section className="py-20 px-4 bg-stone-50">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-900">レポートに含まれるデータ</h2>
-          <p className="text-center text-gray-500 mb-12">毎週月曜日、PDFで自動配信</p>
-          <div className="grid md:grid-cols-3 gap-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold mb-2 text-gray-900">レポートに入っているもの</h2>
+          <p className="text-gray-500 mb-10 text-sm">毎週月曜 AM7:00 にメールで届きます（PDF形式）</p>
+          <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                icon: <TrendingUp size={28} className="text-amber-500" />,
-                title: "カテゴリ別TOP10",
-                desc: "ペット・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ、各TOP10の商品データ",
+                icon: <TrendingUp size={24} className="text-amber-500" />,
+                title: "カテゴリ別 TOP10 ランキング",
+                desc: "ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ。各カテゴリで上位10商品の順位と商品名が並んでいます。",
               },
               {
-                icon: <BarChart2 size={28} className="text-amber-500" />,
-                title: "価格データつき",
-                desc: "各商品の現在価格を一覧で確認。仕入れ判断・利益計算がすぐできる",
+                icon: <BarChart2 size={24} className="text-amber-500" />,
+                title: "その週の価格データ",
+                desc: "各商品の収集時点での価格が載っています。仕入れ値との比較や利益計算に使ってください。",
               },
               {
-                icon: <Star size={28} className="text-amber-500" />,
-                title: "Amazon直リンク",
-                desc: "各商品のAmazonページに直接アクセス。リサーチ時間を大幅に短縮",
+                icon: <Star size={24} className="text-amber-500" />,
+                title: "Amazonへの直リンク",
+                desc: "商品名をクリックするとそのままAmazonの商品ページに飛びます。詳細確認がスムーズにできます。",
               },
             ].map((feat) => (
-              <div key={feat.title} className="bg-white rounded-2xl p-7 shadow-sm border border-stone-100">
-                <div className="mb-4">{feat.icon}</div>
-                <h3 className="font-bold text-lg mb-2">{feat.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{feat.desc}</p>
+              <div key={feat.title} className="bg-white rounded-xl p-6 border border-stone-100">
+                <div className="mb-3">{feat.icon}</div>
+                <h3 className="font-semibold text-base mb-2 text-gray-900">{feat.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{feat.desc}</p>
               </div>
             ))}
           </div>
@@ -332,8 +320,8 @@ export default function HomePage() {
       {/* ── 料金 ── */}
       <section id="pricing" className="py-20 px-4 bg-[#fafaf9]">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-900">料金プラン</h2>
-          <p className="text-center text-gray-500 mb-12">全プラン14日間返金保証 ／ いつでも解約可能</p>
+          <h2 className="text-2xl font-bold mb-2 text-gray-900">料金プラン</h2>
+          <p className="text-gray-500 text-sm mb-10">どちらも14日間は返金対応しています。まず試してみてください。</p>
           <div className="grid md:grid-cols-2 gap-8">
             {PLANS.map((plan) => (
               <div key={plan.name}
@@ -383,7 +371,7 @@ export default function HomePage() {
       {/* ── FAQ ── */}
       <section className="py-20 px-4 bg-stone-50">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">よくある質問</h2>
+          <h2 className="text-2xl font-bold mb-10 text-gray-900">よくある質問</h2>
           <div className="space-y-3">
             {FAQS.map((faq) => (
               <div key={faq.q} className="bg-white rounded-xl border border-stone-200 p-6">
@@ -396,20 +384,24 @@ export default function HomePage() {
       </section>
 
       {/* ── 最終CTA ── */}
-      <section className="py-20 px-4 bg-amber-50 border-t border-amber-100 text-center">
-        <h2 className="text-3xl font-bold mb-4 text-gray-900">今週の急上昇商品を先に掴む</h2>
-        <p className="text-gray-500 mb-8 text-lg">まずは無料サンプルで品質を確認してください</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="#free-sample"
-            className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg px-10 py-4 rounded-2xl transition-colors shadow-md shadow-amber-100">
-            <Gift size={20} /> 無料でレポートを受け取る
-          </a>
-          <Link href="/checkout?plan=standard"
-            className="inline-flex items-center justify-center gap-2 border border-slate-300 text-slate-700 font-semibold text-base px-8 py-4 rounded-2xl hover:bg-white transition-colors bg-[#fafaf9]">
-            月額3,980円で始める <ArrowRight size={18} />
-          </Link>
+      <section className="py-20 px-4 bg-amber-50 border-t border-amber-100">
+        <div className="max-w-xl mx-auto">
+          <h2 className="text-2xl font-bold mb-3 text-gray-900">まず無料で中身を確認してみてください</h2>
+          <p className="text-gray-500 mb-8 leading-relaxed text-sm">
+            登録してみて「思っていたのと違う」なら、そのまま終わりにして構いません。
+            有料プランに進んだ後も、14日以内なら全額返金します。
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a href="#free-sample"
+              className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-base px-8 py-4 rounded-2xl transition-colors shadow-sm">
+              <Gift size={18} /> 無料サンプルを受け取る
+            </a>
+            <Link href="/checkout?plan=standard"
+              className="inline-flex items-center justify-center gap-2 border border-stone-300 text-stone-700 font-medium text-base px-8 py-4 rounded-2xl hover:bg-white transition-colors bg-[#fafaf9]">
+              月額3,980円で始める <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
-        <p className="mt-4 text-gray-400 text-sm">14日間返金保証 ／ いつでも解約可能</p>
       </section>
 
       {/* ── フッター ── */}
