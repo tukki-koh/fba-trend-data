@@ -696,6 +696,148 @@ def upload_note_image(image_bytes: bytes, filename: str) -> str:
 
 
 # ── ⑤ 記事本文ビルド ────────────────────────
+
+def _pick_title(iso_week: str) -> str:
+    """週番号をシードにしてタイトルを3パターンからランダム選択"""
+    week_num = int(iso_week.split("W")[-1]) if "W" in iso_week else 0
+    patterns = [
+        f"【{iso_week}】Amazon FBA 売れ筋ランキング — 今週のカテゴリ別トレンドまとめ",
+        f"【{iso_week}】FBA仕入れ参考データ：今週Amazonで売れているもの",
+        f"【{iso_week}】Amazon売れ筋ウィークリー — カテゴリ5本分のランキングデータ",
+    ]
+    return patterns[week_num % len(patterns)]
+
+
+def _intro_text(trend_data: dict[str, Any], date_str: str, iso_week: str) -> list[str]:
+    """書き出しを週・季節などの要素でバリエーション化する。シードは (年, 週番号) の組み合わせ。"""
+    year = TODAY.year
+    week_num = int(iso_week.split("W")[-1]) if "W" in iso_week else 0
+    rng = random.Random(year * 100 + week_num)
+
+    total_products = sum(len(v) for v in trend_data.values())
+    cat_count = len(trend_data)
+
+    month = TODAY.month
+    if month in (12, 1, 2):
+        season_note = "年明け・冬場の需要が価格帯に反映されている時期です。"
+    elif month in (3, 4, 5):
+        season_note = "春の生活リセット需要が動き始める季節です。"
+    elif month in (6, 7, 8):
+        season_note = "夏のアウトドア・熱中症対策系が例年動きやすい時期です。"
+    else:
+        season_note = "秋冬ギフト需要が絡んでくる時期で、例年ランキングの入れ替わりが多くなります。"
+
+    variants = [
+        [
+            f"{date_str}付けのAmazonベストセラーデータを集計しました。",
+            f"今週は{cat_count}カテゴリ・計{total_products}商品分のランキングを取得しています。",
+            season_note,
+            "各カテゴリの1位商品・価格帯・順位の偏りをまとめたので、仕入れの参考にしてください。",
+        ],
+        [
+            f"週次でAmazonの公開ベストセラーページからデータを拾っています（{date_str}更新分）。",
+            f"今回は{cat_count}カテゴリで合計{total_products}件のランキングデータが取れました。",
+            "数字はランキング上位に出ているものの記録です。",
+            "実際の仕入れ判断は利益率・在庫回転・競合数と合わせて判断してください。",
+        ],
+        [
+            f"今週（{iso_week}）のAmazon売れ筋データを整理しました。",
+            f"{cat_count}カテゴリ・{total_products}商品のランキングを確認しています。",
+            season_note,
+            "1位商品だけでなく、2〜5位の価格帯と商品の傾向も読むと仕入れ候補が広がります。",
+        ],
+    ]
+
+    return rng.choice(variants)
+
+
+def _category_comment(cat: str, products: list[dict]) -> list[str]:
+    """カテゴリごとの自然な分析コメントを生成する"""
+    if not products:
+        return []
+
+    top1 = products[0]
+    top1_title = top1["title"][:22]
+    top1_price = top1.get("price") or "-"
+
+    prices = []
+    for p in products[:10]:
+        try:
+            raw = (p.get("price") or "").replace("￥", "").replace(",", "").strip()
+            prices.append(int(raw))
+        except (ValueError, AttributeError):
+            pass
+
+    if prices:
+        avg_price = int(sum(prices) / len(prices))
+        min_price = min(prices)
+        max_price = max(prices)
+        price_range_text = f"TOP10の価格帯は{min_price:,}〜{max_price:,}円、平均{avg_price:,}円前後でした。"
+    else:
+        price_range_text = ""
+
+    cat_context = {
+        "ペット用品": "消耗品系（フード・砂・シーツ）はリピート購入が多く、ランキングが安定しやすい傾向があります。",
+        "アウトドア":  "季節や天候の影響を受けやすく、週によってランキングの入れ替わりが大きいカテゴリです。",
+        "キッチン":    "低価格の消耗品と中〜高価格の調理器具が混在しており、価格帯の振れ幅が広いカテゴリです。",
+        "ビューティー": "ドラッグストアとの競合がある分、Amazonで売れているものは価格優位性があるものが中心です。",
+        "ベビー":      "安全性への信頼度が購買に直結するため、レビュー数・評価が高い商品が上位に集まりやすいです。",
+    }
+    context = cat_context.get(cat, "")
+
+    lines = []
+    if top1_price != "-":
+        lines.append(f"今週の{cat}カテゴリは「{top1_title}」が1位でした。価格は{top1_price}。")
+    else:
+        lines.append(f"今週の{cat}カテゴリは「{top1_title}」が1位でした。")
+
+    if price_range_text:
+        lines.append(price_range_text)
+    if context:
+        lines.append(context)
+
+    return lines
+
+
+def _build_summary_comment(trend_data: dict[str, Any]) -> list[str]:
+    """今週の傾向を自動分析してまとめコメントを生成する"""
+    lines = []
+
+    sorted_by_count = sorted(trend_data.items(), key=lambda x: len(x[1]), reverse=True)
+    if sorted_by_count:
+        top_cat = sorted_by_count[0][0]
+        lines.append(f"今週は**{top_cat}**のデータ取得数が最も多く、ランキング上位の商品数が揃っていました。")
+
+    cat_avg_prices: dict[str, int] = {}
+    for cat, products in trend_data.items():
+        prices = []
+        for p in products[:5]:
+            try:
+                raw = (p.get("price") or "").replace("￥", "").replace(",", "").strip()
+                prices.append(int(raw))
+            except (ValueError, AttributeError):
+                pass
+        if prices:
+            cat_avg_prices[cat] = int(sum(prices) / len(prices))
+
+    if len(cat_avg_prices) >= 2:
+        high_cat = max(cat_avg_prices, key=cat_avg_prices.__getitem__)
+        low_cat  = min(cat_avg_prices, key=cat_avg_prices.__getitem__)
+        if high_cat != low_cat:
+            lines.append(
+                f"TOP5の平均価格が最も高かったのは**{high_cat}**（{cat_avg_prices[high_cat]:,}円前後）、"
+                f"最も低かったのは**{low_cat}**（{cat_avg_prices[low_cat]:,}円前後）でした。"
+            )
+
+    lines += [
+        "",
+        "ランキングは週によって入れ替わりがあります。"
+        "仕入れ候補に入れた商品は、過去数週のトレンドと合わせて確認することをおすすめします。",
+    ]
+
+    return lines
+
+
 def build_note_article(trend_data: dict[str, Any],
                        image_urls: dict[str, str]) -> str:
     date_str = TODAY.strftime("%Y年%m月%d日")
@@ -703,33 +845,27 @@ def build_note_article(trend_data: dict[str, Any],
     header_img  = image_urls.get("header", "")
     summary_img = image_urls.get("summary", "")
 
-    # ─ 導入 ─
     lines = []
+
+    # ─ ヘッダー画像 & タイトル ─
     if header_img:
         lines.append(f"![ヘッダー画像]({header_img})\n")
 
-    lines += [
-        f"# 【{ISO_WEEK}】Amazon FBA 今週の売れ筋トレンド完全版",
-        "",
-        f"こんにちは！毎週火曜日に **Amazon FBAの売れ筋トレンドデータ** を無料公開しています。",
-        f"（{date_str} 更新）",
-        "",
-        "FBA販売者・せどらーの方が「**今週どのカテゴリで何が売れているか**」を",
-        "一目でわかるようにまとめました。仕入れ判断の参考にどうぞ！",
-        "",
-        "---",
-        "",
-        "## 📊 今週のデータ概要",
-        "",
-    ]
+    lines += [f"# {_pick_title(ISO_WEEK)}", ""]
+
+    # ─ 導入文 ─
+    lines += _intro_text(trend_data, date_str, ISO_WEEK)
+    lines += ["", "---", ""]
+
+    # ─ データ概要 ─
+    lines += ["## 今週のデータ概要", ""]
 
     if summary_img:
         lines.append(f"![カテゴリ別データ概要]({summary_img})\n")
 
-    # データ概要テーブル
     lines += [
-        "| カテゴリ | 取得商品数 | 今週の注目 |",
-        "|---------|-----------|-----------|",
+        "| カテゴリ | 取得商品数 | 今週の1位 |",
+        "|---------|-----------|----------|",
     ]
     for cat, products in trend_data.items():
         top = products[0]["title"][:20] + "…" if products else "データなし"
@@ -738,77 +874,68 @@ def build_note_article(trend_data: dict[str, Any],
     lines += ["", "---", ""]
 
     # ─ カテゴリ別詳細 ─
-    emoji_map = {
-        "ペット用品": "🐾", "アウトドア": "⛺", "キッチン": "🍳",
-        "ビューティー": "💄", "ベビー": "👶",
-    }
     for cat, products in trend_data.items():
-        emoji = emoji_map.get(cat, "📦")
-        lines += ["", f"## {emoji} {cat} ランキング TOP10", ""]
+        lines += ["", f"## {cat} ランキング TOP10", ""]
+
+        comment_lines = _category_comment(cat, products)
+        if comment_lines:
+            lines += comment_lines
+            lines.append("")
 
         chart_img = image_urls.get(f"chart_{cat}", "")
         if chart_img:
             lines.append(f"![{cat}ランキンググラフ]({chart_img})\n")
 
         if not products:
-            lines.append("> 今週はデータを取得できませんでした。次週再試行します。\n")
+            lines.append("今週はデータを取得できませんでした。次週再試行します。\n")
             continue
 
         lines += [
-            "| 順位 | 商品名 | 価格 | チェック |",
-            "|-----|-------|------|---------|",
+            "| 順位 | 商品名 | 価格 | リンク |",
+            "|-----|-------|------|-------|",
         ]
         for p in products[:10]:
             price   = p.get("price", "-") or "-"
             asin    = p.get("asin", "")
             amz_url = f"https://www.amazon.co.jp/dp/{asin}" if asin else ""
-            link    = f"[Amazon]({amz_url})" if amz_url else "-"
-            medal   = "🥇" if p["rank"] == 1 else "🥈" if p["rank"] == 2 else "🥉" if p["rank"] == 3 else f"{p['rank']}位"
-            lines.append(f"| {medal} | {p['title'][:30]} | {price} | {link} |")
+            link    = f"[確認]({amz_url})" if amz_url else "-"
+            lines.append(f"| {p['rank']}位 | {p['title'][:30]} | {price} | {link} |")
 
-        # 簡易コメント（1位商品の注目ポイント）
-        if products:
-            top1 = products[0]
-            lines += [
-                "",
-                f"> **💡 注目商品：{top1['title'][:25]}**",
-                f"> 今週1位のロングセラー商品です。"
-                f"{'価格帯：' + top1['price'] if top1['price'] != '-' else ''}",
-                f"> FBA手数料を考慮した仕入れ判断に活用ください。",
-                "",
-            ]
+        lines.append("")
 
-    # ─ まとめ & CTA ─
+    lines += ["---", ""]
+
+    # ─ 今週のまとめ（自動生成） ─
+    lines += ["## 今週の傾向まとめ", ""]
+    lines += _build_summary_comment(trend_data)
+
     lines += [
-        "---",
-        "",
-        "## 🔥 今週のまとめ",
-        "",
-        "- 全5カテゴリのランキングを毎週無料公開しています",
-        "- データはAmazon公式ページから自動収集（月曜AM更新）",
-        "- **有料版では** TOP20・価格推移・競合分析・仕入れ利益率まで届きます",
         "",
         "---",
         "",
-        "## 📬 もっと詳しいデータが欲しい方へ",
+        "## 詳細データについて",
         "",
-        "毎週月曜日の朝、**全カテゴリの詳細PDFレポート**をメールでお届けするサービスを提供しています。",
+        "このページで公開しているのはランキングの上位10件です。",
+        "TOP20・週次の価格変動・競合出品数まで含めた詳細レポートは別途ご確認いただけます。",
         "",
         "| プラン | 価格 | 内容 |",
         "|-------|------|------|",
         "| スタンダード | ¥3,980/月 | 全5カテゴリ TOP20・価格データ |",
-        "| プロ | ¥9,800/月 | ↑＋仕入れ利益率・競合チェック・独自分析 |",
+        "| プロ | ¥9,800/月 | スタンダード＋仕入れ利益率・競合チェック・独自分析 |",
         "",
-        f"👉 **[FBAトレンドレーダーを見てみる]({SITE_URL})**",
-        "",
-        "初月は返金保証あり。合わなければすぐ解約できます。",
-        "",
+    ]
+
+    if SITE_URL:
+        lines.append(f"[詳細を確認する]({SITE_URL})")
+        lines.append("")
+
+    lines += [
         "---",
         "",
-        "*このデータはAmazon公式の公開情報をもとに作成しています。*",
+        "*データはAmazon公式の公開情報をもとに作成しています。*",
         "*仕入れの最終判断はご自身の責任でお願いします。*",
         "",
-        "#Amazon #FBA #せどり #副業 #物販 #Amazonせどり #FBAトレンド #仕入れ #副業月収",
+        "#Amazon #FBA #せどり #副業 #物販 #Amazonせどり #FBAトレンド #仕入れ",
     ]
 
     return "\n".join(lines)
