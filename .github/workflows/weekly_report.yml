@@ -7,6 +7,8 @@ on:
     # ② note記事公開: 毎週火曜 PM9:00 JST (UTC火曜 12:00)
     #    ※火曜夜はnote閲覧数ピーク帯。月曜より翌日がバズりやすい
     - cron: "0 12 * * 2"
+    # ③ メールドリップ配信: 毎日 AM9:00 JST (UTC 0:00)
+    - cron: "0 0 * * *"
   # 手動実行（テスト用）
   workflow_dispatch:
     inputs:
@@ -88,10 +90,12 @@ jobs:
           RESEND_API_KEY:       ${{ secrets.RESEND_API_KEY }}
           FROM_EMAIL:           ${{ secrets.FROM_EMAIL }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.SITE_URL }}
-          NOTE_EMAIL:           ${{ secrets.NOTE_EMAIL }}
-          NOTE_PASSWORD:        ${{ secrets.NOTE_PASSWORD }}
-          NOTE_SESSION_COOKIE:  ${{ secrets.NOTE_SESSION_COOKIE }}
-          RUN_MODE:             "note"
+          NOTE_EMAIL:             ${{ secrets.NOTE_EMAIL }}
+          NOTE_PASSWORD:          ${{ secrets.NOTE_PASSWORD }}
+          NOTE_SESSION_COOKIE:    ${{ secrets.NOTE_SESSION_COOKIE }}
+          META_ACCESS_TOKEN:      ${{ secrets.META_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID:   ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          RUN_MODE:               "note"
         run: python scripts/collect_trends.py
 
       - name: Instagram素材をArtifactとして保存
@@ -107,3 +111,35 @@ jobs:
       - name: 失敗時のアラート
         if: failure()
         run: echo "⚠️ note投稿失敗。GitHub Actionsのログを確認してください。"
+
+  # ─────────────────────────────────────────
+  # JOB 3: メールドリップ配信（毎日 AM9:00 JST）
+  # ─────────────────────────────────────────
+  email-drip:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 0 * * *')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: 依存パッケージのインストール
+        run: pip install -r scripts/requirements.txt
+
+      - name: ドリップメール配信
+        env:
+          PYTHONIOENCODING:     utf-8
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY:       ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL:           ${{ secrets.FROM_EMAIL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.SITE_URL }}
+        run: python scripts/email_drip.py

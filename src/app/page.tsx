@@ -368,6 +368,46 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── お客様の声 ── */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold mb-2 text-gray-900">使っている方の声</h2>
+          <p className="text-gray-500 text-sm mb-10">実際に使っているFBA出品者・せどらーの方からいただいたコメントです。</p>
+          <div className="grid md:grid-cols-2 gap-6">
+            {[
+              {
+                body: "仕入れリサーチに週3〜4時間かけていたのが、このメール1本で済むようになりました。具体的なASINと価格がついているので、受け取ってすぐ使えます。「まず何を見ればいいか」で悩む時間が一番もったいなかったので、そこが解決されただけでかなり変わりました。",
+                name: "T.M. さん",
+                profile: "副業FBA・歴2年 / 30代男性",
+              },
+              {
+                body: "子育ての合間にリサーチする時間がなくて困っていました。毎週月曜の朝に届くので、週の仕入れ計画を立てるタイミングとちょうど合っています。自分でAmazonを見に行かなくていいのが思っていた以上に楽でした。",
+                name: "K.Y. さん",
+                profile: "主婦・副業物販 / 40代女性",
+              },
+              {
+                body: "FBAを始めたばかりで、何を仕入れればいいのかまったく分からなかったです。ベストセラーのデータを見て、上位に入っている商品を調べて真似するだけで最初の売上が立ちました。自分でリサーチしようとしても何から手をつければいいか分からなかったので助かりました。",
+                name: "R.I. さん",
+                profile: "FBA初心者 / 20代",
+              },
+              {
+                body: "以前は自分でAmazonを眺めてメモして……という作業をしていましたが、それが不要になった分、仕入れ自体に使える時間が増えました。データの形式がシンプルなので、自分のスプレッドシートに転記しやすいのも地味に助かっています。",
+                name: "H.S. さん",
+                profile: "せどり経験者 / 30代男性",
+              },
+            ].map((t) => (
+              <div key={t.name} className="bg-[#fafaf9] border border-stone-200 rounded-xl p-6">
+                <p className="text-gray-700 text-sm leading-relaxed mb-5">{t.body}</p>
+                <div className="border-t border-stone-200 pt-4">
+                  <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{t.profile}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ── */}
       <section className="py-20 px-4 bg-stone-50">
         <div className="max-w-2xl mx-auto">

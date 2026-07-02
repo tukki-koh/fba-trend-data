@@ -12,7 +12,9 @@ collect_trends.py の post_to_note() 後に呼び出す。
 import os
 import io
 import json
+import time
 import datetime
+import random
 import requests
 import urllib.parse
 import glob
@@ -26,6 +28,7 @@ SITE_URL     = os.environ.get("NEXT_PUBLIC_SITE_URL", "https://fba-trend-data.ve
 
 TODAY    = datetime.date.today()
 ISO_WEEK = TODAY.strftime("%Y-W%V")
+ISO_WEEK_NUM = int(TODAY.strftime("%V"))  # 1〜53 の整数（季節判定用）
 
 W, H = 1080, 1080  # Instagram正方形サイズ
 
@@ -132,9 +135,20 @@ def generate_cover() -> bytes:
     _draw_rounded_rect(draw, [60, 470, 420, 520], radius=12, fill="#f5f5f4")
     draw.text((80, 480), _pil_safe(f"{ISO_WEEK}  データ"), font=_font(26), fill=C_SUB)
 
+    # 季節コメント（ISO週番号で切り替え）
+    if ISO_WEEK_NUM <= 12:
+        season_comment = "春の仕入れシーズン到来"
+    elif ISO_WEEK_NUM <= 25:
+        season_comment = "夏物需要が動き始めました"
+    elif ISO_WEEK_NUM <= 38:
+        season_comment = "秋の売れ筋チェック"
+    else:
+        season_comment = "年末商戦の仕入れリサーチ"
+    draw.text((80, 535), _pil_safe(f"▶  {season_comment}"), font=_font(22), fill=C_ACCENT)
+
     # カテゴリバッジ一覧
     cats = ["ペット用品", "アウトドア", "キッチン", "ビューティー", "ベビー"]
-    y = 570
+    y = 600
     x = 60
     for cat in cats:
         color = CAT_ACCENT.get(cat, C_ACCENT)
@@ -278,43 +292,156 @@ def upload_image(image_bytes: bytes, filename: str) -> str:
     return f"{SUPABASE_URL}/storage/v1/object/public/instagram/{path}"
 
 
+# ── 季節コメント ────────────────────────────────
+def _season_comment() -> str:
+    """ISO週番号をもとに季節に応じたコメントを返す"""
+    if ISO_WEEK_NUM <= 12:
+        return "春の仕入れシーズン、動き出しています。"
+    elif ISO_WEEK_NUM <= 25:
+        return "夏物需要が上がり始める時期。早めのチェックを。"
+    elif ISO_WEEK_NUM <= 38:
+        return "秋の売れ筋が見えてきました。"
+    else:
+        return "年末商戦に向けた仕入れリサーチの時期です。"
+
+
 # ── キャプション生成 ──────────────────────────────
 def build_caption(trend_data: dict) -> str:
-    date_str = TODAY.strftime("%m月%d日")
-
     # 注目カテゴリ（最も商品数が多い）
     top_cat = max(trend_data, key=lambda c: len(trend_data[c]), default="ペット用品")
     top_product = trend_data.get(top_cat, [{}])[0].get("title", "")[:20]
 
-    caption = f"""📦 {ISO_WEEK} Amazon売れ筋TOP3公開
+    # ISO週番号をシードにしてパターンをランダム選択（週ごとに固定）
+    rng = random.Random(ISO_WEEK_NUM)
+    pattern = rng.randint(0, 3)
 
-今週の注目カテゴリは「{top_cat}」
-1位は「{top_product}」でした！
+    season = _season_comment()
 
-スワイプして全カテゴリをチェック👆
+    openers = [
+        f"今週の売れ筋データ、更新しました。\n\n{top_cat}で動いているのは「{top_product}」。\n{season}",
+        f"📊 {top_cat}のランキングを公開。\n\n1位は「{top_product}」でした。\n{season}",
+        f"今週注目は{top_cat}。\n\n「{top_product}」がトップ入り。\n{season}",
+        f"FBAトレンドデータ、{ISO_WEEK}版。\n\n{top_cat}から「{top_product}」が浮上。\n{season}",
+    ]
+    opener = openers[pattern]
+
+    hashtags = (
+        "#Amazon物販 #FBA副業 #物販副業 #せどり女子 #副業初心者 "
+        "#仕入れリサーチ #Amazonせどり #FBAせどり #副業月収 #在宅副業 "
+        "#国内せどり #電脳せどり #物販ビジネス #Amazon #せどり"
+    )
+
+    caption = f"""{opener}
+
+スワイプして全カテゴリをチェック↓
 
 ━━━━━━━━━━━━━━━
-このアカウントでは
-Amazon FBAで売れる商品データを
-毎週火曜に無料公開しています📊
-
-✅ ペット用品
-✅ アウトドア
-✅ キッチン
-✅ ビューティー
-✅ ベビー
-
-全5カテゴリのTOP10データは
-プロフィールのリンクから無料でもらえます↗️
+毎週火曜、5カテゴリのAmazon売れ筋TOP3を無料公開中。
+全TOP10データはプロフィールのリンクから。
 ━━━━━━━━━━━━━━━
 
-#Amazon #FBA #せどり #副業 #物販
-#Amazon物販 #Amazonせどり #FBA仕入れ
-#副業月収 #仕入れリサーチ #せどり初心者
-#FBAトレンド #ネット物販 #転売 #物販副業
-#{date_str}"""
+{hashtags}"""
 
     return caption
+
+
+# ── Instagram Meta Graph API 自動投稿 ────────────────────────────────────────
+def _wait_for_ig_media(container_id: str, token: str, max_wait: int = 60) -> bool:
+    """メディアコンテナの処理完了を待つ"""
+    url = f"https://graph.facebook.com/v18.0/{container_id}"
+    for _ in range(max_wait // 3):
+        time.sleep(3)
+        r = requests.get(url, params={"fields": "status_code", "access_token": token}, timeout=10)
+        status = r.json().get("status_code", "")
+        if status == "FINISHED":
+            return True
+        if status == "ERROR":
+            return False
+    return False
+
+
+def post_to_instagram(image_urls: dict, caption: str) -> str | None:
+    """
+    Meta Graph API でInstagramカルーセル投稿。
+    必要環境変数: META_ACCESS_TOKEN, INSTAGRAM_ACCOUNT_ID
+    画像URLはSupabaseのpublic URL (already uploaded)。
+    Returns: 投稿パーマリンク or None
+    """
+    token   = os.environ.get("META_ACCESS_TOKEN", "").strip()
+    ig_id   = os.environ.get("INSTAGRAM_ACCOUNT_ID", "").strip()
+
+    if not token or not ig_id:
+        print("[Instagram] META_ACCESS_TOKEN / INSTAGRAM_ACCOUNT_ID 未設定 → スキップ")
+        print("  設定方法: GitHubリポジトリ Settings → Secrets → Actions に追加")
+        return None
+
+    # 公開済みSupabaseのURLだけを使う（最大10枚）
+    public_urls = [v for v in image_urls.values() if v and v.startswith("http")][:10]
+    if not public_urls:
+        print("[Instagram] 公開画像URLなし → スキップ")
+        return None
+
+    api_base = f"https://graph.facebook.com/v18.0/{ig_id}"
+
+    if len(public_urls) == 1:
+        # シングル投稿
+        r = requests.post(f"{api_base}/media",
+                          params={"image_url": public_urls[0], "caption": caption,
+                                  "access_token": token}, timeout=30)
+        d = r.json()
+        if "id" not in d:
+            print(f"[Instagram] media作成失敗: {d}")
+            return None
+        container_id = d["id"]
+    else:
+        # カルーセル: 各画像をコンテナとして登録
+        child_ids = []
+        for url in public_urls:
+            r = requests.post(f"{api_base}/media",
+                              params={"image_url": url, "is_carousel_item": "true",
+                                      "access_token": token}, timeout=30)
+            d = r.json()
+            if "id" not in d:
+                print(f"[Instagram] carousel item作成失敗: {d}")
+                continue
+            child_ids.append(d["id"])
+
+        if not child_ids:
+            print("[Instagram] カルーセルアイテムなし → スキップ")
+            return None
+
+        # 処理完了待ち
+        for cid in child_ids:
+            _wait_for_ig_media(cid, token)
+
+        # カルーセルコンテナ作成
+        r = requests.post(f"{api_base}/media",
+                          params={"media_type": "CAROUSEL",
+                                  "children": ",".join(child_ids),
+                                  "caption": caption,
+                                  "access_token": token}, timeout=30)
+        d = r.json()
+        if "id" not in d:
+            print(f"[Instagram] carousel container作成失敗: {d}")
+            return None
+        container_id = d["id"]
+        _wait_for_ig_media(container_id, token)
+
+    # 公開
+    r = requests.post(f"{api_base}/media_publish",
+                      params={"creation_id": container_id, "access_token": token}, timeout=30)
+    d = r.json()
+    if "id" not in d:
+        print(f"[Instagram] 公開失敗: {d}")
+        return None
+
+    # パーマリンク取得
+    post_id = d["id"]
+    r2 = requests.get(f"https://graph.facebook.com/v18.0/{post_id}",
+                      params={"fields": "permalink", "access_token": token}, timeout=10)
+    permalink = r2.json().get("permalink", f"https://www.instagram.com/fba_trend_radar/")
+    print(f"[Instagram] 投稿完了: {permalink}")
+    return permalink
 
 
 # ── メイン ───────────────────────────────────────
@@ -379,7 +506,11 @@ def generate_instagram_content(trend_data: dict) -> dict:
     print(f"     画像: /tmp/instagram_{ISO_WEEK}_*.png")
     print(f"     投稿文: {caption_path}")
 
-    return {"image_urls": image_urls, "caption": caption, "local_paths": local_paths}
+    # Meta Graph API で自動投稿
+    post_url = post_to_instagram(image_urls, caption)
+
+    return {"image_urls": image_urls, "caption": caption, "local_paths": local_paths,
+            "post_url": post_url}
 
 
 if __name__ == "__main__":
