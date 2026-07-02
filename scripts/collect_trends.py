@@ -127,22 +127,23 @@ def scrape_bestsellers(url: str) -> list[dict[str, Any]]:
     )
 
     # タイトル取得用セレクター（優先度順）
+    # 2024-2025 Amazon JP: タイトルは div[class*="line-clamp-2"] に入っている
+    # ハッシュ付きクラス名（例: _cDEzb_p13n-sc-css-line-clamp-2_EWgCb）は
+    # デプロイごとに変わるため、部分一致セレクターで対応する
     TITLE_SELECTORS = [
+        "div[class*='line-clamp-2']",     # 実際のAmazon JP HTML（最優先）
+        "span[class*='line-clamp-2']",
+        "div[class*='line-clamp-1']",
+        "span[class*='line-clamp-1']",
+        "div[class*='line-clamp-3']",
+        "span[class*='line-clamp-3']",
         "div.p13n-sc-truncate-desktop-type2",
-        "span._cDEzb_p13n-sc-css-line-clamp-1_1Fn1y",
-        "span._cDEzb_p13n-sc-css-line-clamp-3_1Fn1y",
-        "div._cDEzb_p13n-sc-css-line-clamp-1_1Fn1y",
-        "div._cDEzb_p13n-sc-css-line-clamp-3_1Fn1y",
-        "span.a-size-small.a-color-base",
-        "span.a-truncate-cut",
         "div[class*='truncate']",
-        "span[class*='line-clamp']",
-        "a.a-link-normal span",
         "img[alt]",  # altテキストをフォールバックに使う
     ]
     PRICE_SELECTORS = [
+        "span[class*='p13n-sc-price']",   # 実際のAmazon JP HTML（最優先）
         "span.p13n-sc-price",
-        "span._cDEzb_p13n-sc-price_3mJ9Z",
         "span.a-price .a-offscreen",
         "span[class*='price']",
         "span.a-color-price",
