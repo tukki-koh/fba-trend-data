@@ -53,13 +53,13 @@ export default function FreeSampleForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="メールアドレスを入力"
-          className="flex-1 px-5 py-4 rounded-full border-2 border-orange-200 focus:border-orange-400 focus:outline-none text-gray-900 text-base"
+          className="flex-1 px-5 py-4 rounded-full border border-stone-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none text-stone-900 text-base transition-colors"
           disabled={status === "loading"}
         />
         <button
           type="submit"
           disabled={status === "loading" || !email}
-          className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-bold px-7 py-4 rounded-full transition-colors whitespace-nowrap"
+          className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white font-bold px-7 py-4 rounded-full transition-colors whitespace-nowrap"
         >
           {status === "loading" ? (
             <><Loader2 size={18} className="animate-spin" /> 送信中…</>
@@ -71,7 +71,7 @@ export default function FreeSampleForm() {
       {status === "error" && (
         <p className="text-red-500 text-sm mt-2 text-center">{message}</p>
       )}
-      <p className="text-xs text-gray-400 mt-3 text-center">
+      <p className="text-xs text-stone-400 mt-3 text-center">
         クレジットカード不要・配信停止はいつでも可能
       </p>
     </form>
