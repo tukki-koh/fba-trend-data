@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s｜FBAトレンドレーダー",
   },
   description:
-    "Amazon FBA出品者・せどらー向けに全5カテゴリの売れ筋ランキングTOP10を毎週月曜に自動配信。仕入れ判断・商品リサーチを効率化。月額3,980円〜・14日返金保証。",
+    "Amazon FBA仕入れリサーチが週1通のメールで完了。売れ筋TOP10×5カテゴリを毎週月曜7時に自動配信、価格・リンク付き。月額3,980円〜・14日返金保証。",
   keywords: [
     "Amazon FBA", "せどり", "Amazon売れ筋", "FBA仕入れ", "Amazonトレンド",
     "物販", "副業", "Amazon転売", "ベストセラー", "週次レポート",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: "FBAトレンドレーダー",
     title: "FBAトレンドレーダー｜Amazon売れ筋トレンドを毎週自動配信",
     description:
-      "全5カテゴリの売れ筋ランキングTOP10を毎週月曜に自動配信。せどり・FBA仕入れの判断を効率化。月額3,980円〜。",
+      "売れ筋TOP10×5カテゴリを毎週月曜7時に自動配信。価格・Amazonリンク付きでリサーチ時間を大幅短縮。月額3,980円〜・14日返金保証。",
     images: [
       {
         url: "/opengraph-image",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "FBAトレンドレーダー｜Amazon売れ筋を毎週自動配信",
-    description: "全5カテゴリの売れ筋TOP10を毎週月曜に自動配信。月額3,980円〜。",
+    description: "売れ筋TOP10×5カテゴリを毎週月曜7時に自動配信。月額3,980円〜・14日返金保証、無料サンプルあり。",
     images: ["/opengraph-image"],
   },
   robots: {

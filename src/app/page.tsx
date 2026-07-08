@@ -7,7 +7,7 @@ import FreeSampleForm from "@/components/FreeSampleForm";
 export const metadata: Metadata = {
   title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
   description:
-    "毎週月曜の朝、Amazon JPの売れ筋ランキングTOP10をPDFでお届けします。ペット・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ。月額3,980円〜、まず無料サンプルで確認できます。",
+    "毎週月曜7時、Amazon JP売れ筋TOP10×5カテゴリを価格・Amazonリンク付きPDFで自動配信。月額3,980円〜、無料サンプルはカード登録不要で今すぐ確認。",
 };
 
 const PLANS = [
@@ -105,38 +105,58 @@ const jsonLd = {
       name: "FBAトレンドレーダー",
       url: SITE_URL,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/opengraph-image` },
-      description: "Amazon FBA出品者・せどらー向けに全5カテゴリの売れ筋ランキングTOP10を毎週月曜に自動配信するデータサービスです。",
+      description: "Amazon FBA出品者・個人せどらー向けに、ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ（プロプランは20カテゴリ）の売れ筋TOP10を毎週月曜AM7:00に自動配信するデータサービスです。月額3,980円〜、14日間全額返金保証つき。",
       areaServed: "JP",
-      knowsAbout: ["Amazon FBA", "せどり", "Amazon物販", "商品リサーチ", "FBA仕入れ"],
+      audience: {
+        "@type": "Audience",
+        audienceType: "Amazon FBA出品者・個人せどらー・物販副業をしている人",
+      },
+      knowsAbout: ["Amazon FBA", "せどり", "Amazon物販", "商品リサーチ", "FBA仕入れ", "Amazonベストセラー"],
+      makesOffer: [
+        { "@id": `${SITE_URL}/#offer-standard` },
+        { "@id": `${SITE_URL}/#offer-pro` },
+      ],
     },
     {
       "@type": "Service",
       "@id": `${SITE_URL}/#service`,
       name: "FBAトレンドレーダー 週次トレンドレポート",
       provider: { "@id": `${SITE_URL}/#organization` },
-      serviceType: "データ配信サービス",
-      description: "Amazon Japanのベストセラーページから毎週自動収集したトレンドデータを、ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリTOP10としてPDFレポートで毎週月曜AM7:00に配信します。",
+      serviceType: "Amazon FBA仕入れリサーチ用データ配信サービス",
+      audience: {
+        "@type": "Audience",
+        audienceType: "Amazon FBA出品者・個人せどらー・物販副業をしている人",
+      },
+      description: "Amazon Japanの公開ベストセラーページから毎週自動収集したトレンドデータを、ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリTOP10（商品名・現在価格・Amazonリンク付き）としてPDFレポートで毎週月曜AM7:00に配信します。仕入れリサーチにかかる時間を短縮する目的で作られています。",
       offers: [
         {
           "@type": "Offer",
+          "@id": `${SITE_URL}/#offer-standard`,
           name: "スタンダードプラン",
           price: "3980",
           priceCurrency: "JPY",
           priceSpecification: { "@type": "RecurringCharges", billingPeriod: "P1M" },
-          description: "全5カテゴリTOP10・PDFレポート・過去4週アーカイブ・14日返金保証",
+          description: "全5カテゴリTOP10・商品名/価格/Amazonリンク付きPDFレポート・毎週月曜AM7:00配信・過去4週ぶんのアーカイブ閲覧・14日間全額返金保証・カード登録不要の無料サンプルあり",
+          eligibleCustomerType: "週1回のリサーチで十分な個人FBA出品者・副業せどらー",
         },
         {
           "@type": "Offer",
+          "@id": `${SITE_URL}/#offer-pro`,
           name: "プロプラン",
           price: "9800",
           priceCurrency: "JPY",
           priceSpecification: { "@type": "RecurringCharges", billingPeriod: "P1M" },
-          description: "全20カテゴリ・Excelデータ・過去3ヶ月アーカイブ・競合価格アラート・14日返金保証",
+          description: "スタンダードの内容に加え全20カテゴリに拡張・Excel（.xlsx）ダウンロード・競合出品者の価格変動アラート・新規急上昇商品の通知・過去3ヶ月ぶんのアーカイブ・14日間全額返金保証",
+          eligibleCustomerType: "仕入れデータを本格的に使い倒したい専業・本業級のFBA出品者",
         },
       ],
       hasOfferCatalog: {
         "@type": "OfferCatalog",
         name: "FBAトレンドレーダー プランご案内",
+        itemListElement: [
+          { "@id": `${SITE_URL}/#offer-standard` },
+          { "@id": `${SITE_URL}/#offer-pro` },
+        ],
       },
     },
     {
