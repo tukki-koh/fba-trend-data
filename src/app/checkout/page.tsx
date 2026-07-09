@@ -6,8 +6,8 @@ import { ArrowRight, Lock, CheckCircle } from "lucide-react";
 import { Suspense } from "react";
 
 const PLAN_INFO = {
-  standard: { name: "スタンダード", price: "3,980", features: ["週次トレンドPDF", "急上昇TOP10", "注目キーワード20件"] },
-  pro: { name: "プロ", price: "9,800", features: ["全カテゴリ詳細データ", "競合価格アラート", "Excelデータ"] },
+  standard: { name: "スタンダード", price: "1,480", features: ["週次トレンドPDF", "急上昇TOP10", "注目キーワード20件"] },
+  pro: { name: "プロ", price: "2,480", features: ["全カテゴリ詳細データ", "競合価格アラート", "Excelデータ"] },
 };
 
 function CheckoutForm() {

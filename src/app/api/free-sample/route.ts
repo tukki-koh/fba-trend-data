@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
           <a href="${upgradeUrl}"
              style="display:inline-block;background:#1f2937;color:white;padding:12px 28px;
                     border-radius:999px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:8px">
-            有料プランを見る（月額3,980円〜）→
+            有料プランを見る（月額1,480円〜）→
           </a>
           <p style="font-size:11px;color:#9ca3af;margin-top:20px">
             配信停止は<a href="${dashboardUrl}" style="color:#f97316">こちら</a>からいつでも可能です。

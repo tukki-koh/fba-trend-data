@@ -71,7 +71,7 @@ export default function OgImage() {
               marginTop: "auto",
             }}
           >
-            {["✅ せどり・FBA仕入れに", "✅ 月額3,980円〜", "✅ 14日返金保証", "✅ いつでも解約OK"].map((item) => (
+            {["✅ せどり・FBA仕入れに", "✅ 月額1,480円〜", "✅ 14日返金保証", "✅ いつでも解約OK"].map((item) => (
               <span key={item} style={{ color: "white", fontSize: "22px", fontWeight: "600" }}>
                 {item}
               </span>

@@ -4,16 +4,19 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-04-22.dahlia",
 });
 
+// Stripe Price ID（2026-07改定: スタンダード¥1,480 / プロ¥2,480）
+// Price ID は機密情報ではないためコードに直接指定する。
+// これにより本番のenv変数（旧Price IDのまま）に依存せず、常に正しい価格で課金される。
 export const PLANS = {
   standard: {
-    priceId: process.env.STRIPE_PRICE_STANDARD!,
+    priceId: "price_1TrA9F06XUMBHX2UInjsS3Ap",
     name: "スタンダード",
-    amount: 3980,
+    amount: 1480,
   },
   pro: {
-    priceId: process.env.STRIPE_PRICE_PRO!,
+    priceId: "price_1TrA9K06XUMBHX2UDCeE3rJ3",
     name: "プロ",
-    amount: 9800,
+    amount: 2480,
   },
 } as const;
 

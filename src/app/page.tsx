@@ -7,13 +7,13 @@ import FreeSampleForm from "@/components/FreeSampleForm";
 export const metadata: Metadata = {
   title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
   description:
-    "毎週月曜7時、Amazon JP売れ筋TOP10×5カテゴリを価格・Amazonリンク付きPDFで自動配信。月額3,980円〜、無料サンプルはカード登録不要で今すぐ確認。",
+    "毎週月曜7時、Amazon JP売れ筋TOP10×5カテゴリを価格・Amazonリンク付きPDFで自動配信。月額1,480円〜、無料サンプルはカード登録不要で今すぐ確認。",
 };
 
 const PLANS = [
   {
     name: "スタンダード",
-    price: "3,980",
+    price: "1,480",
     description: "週1回のリサーチで十分な方に",
     features: [
       "週次トレンドレポート（PDF形式）",
@@ -29,7 +29,7 @@ const PLANS = [
   },
   {
     name: "プロ",
-    price: "9,800",
+    price: "2,480",
     description: "本腰を入れて仕入れデータを使い倒したい方に",
     features: [
       "スタンダードの内容すべて",
@@ -105,7 +105,7 @@ const jsonLd = {
       name: "FBAトレンドレーダー",
       url: SITE_URL,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/opengraph-image` },
-      description: "Amazon FBA出品者・個人せどらー向けに、ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ（プロプランは20カテゴリ）の売れ筋TOP10を毎週月曜AM7:00に自動配信するデータサービスです。月額3,980円〜、14日間全額返金保証つき。",
+      description: "Amazon FBA出品者・個人せどらー向けに、ペット用品・アウトドア・キッチン・ビューティー・ベビーの5カテゴリ（プロプランは20カテゴリ）の売れ筋TOP10を毎週月曜AM7:00に自動配信するデータサービスです。月額1,480円〜、14日間全額返金保証つき。",
       areaServed: "JP",
       audience: {
         "@type": "Audience",
@@ -133,7 +133,7 @@ const jsonLd = {
           "@type": "Offer",
           "@id": `${SITE_URL}/#offer-standard`,
           name: "スタンダードプラン",
-          price: "3980",
+          price: "1480",
           priceCurrency: "JPY",
           priceSpecification: { "@type": "RecurringCharges", billingPeriod: "P1M" },
           description: "全5カテゴリTOP10・商品名/価格/Amazonリンク付きPDFレポート・毎週月曜AM7:00配信・過去4週ぶんのアーカイブ閲覧・14日間全額返金保証・カード登録不要の無料サンプルあり",
@@ -143,7 +143,7 @@ const jsonLd = {
           "@type": "Offer",
           "@id": `${SITE_URL}/#offer-pro`,
           name: "プロプラン",
-          price: "9800",
+          price: "2480",
           priceCurrency: "JPY",
           priceSpecification: { "@type": "RecurringCharges", billingPeriod: "P1M" },
           description: "スタンダードの内容に加え全20カテゴリに拡張・Excel（.xlsx）ダウンロード・競合出品者の価格変動アラート・新規急上昇商品の通知・過去3ヶ月ぶんのアーカイブ・14日間全額返金保証",
@@ -165,7 +165,7 @@ const jsonLd = {
       description: "Amazon FBA仕入れリサーチをFBAトレンドレーダーで効率化する方法",
       step: [
         { "@type": "HowToStep", position: 1, name: "無料サンプルを受け取る", text: "メールアドレスを入力して最新レポートを無料で受け取り、データの品質を確認します。" },
-        { "@type": "HowToStep", position: 2, name: "プランを選択する", text: "スタンダード（月額3,980円）またはプロ（月額9,800円）プランを選択します。" },
+        { "@type": "HowToStep", position: 2, name: "プランを選択する", text: "スタンダード（月額1,480円）またはプロ（月額2,480円）プランを選択します。" },
         { "@type": "HowToStep", position: 3, name: "毎週月曜に受信する", text: "毎週月曜AM7:00に最新のトレンドレポートPDFがメールで届きます。" },
         { "@type": "HowToStep", position: 4, name: "仕入れ判断に活用する", text: "今週急上昇中のカテゴリ・商品データをもとに仕入れリサーチを効率化します。" },
       ],
@@ -312,7 +312,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-7">
               <Link href="/checkout?plan=standard"
                 className="group inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40">
-                月額3,980円で始める
+                月額1,480円で始める
                 <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <a href="#free-sample"
@@ -491,7 +491,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-3 text-stone-900">シンプルな2つのプラン</h2>
-            <p className="text-stone-500">どちらも14日間の返金保証つき。まず気軽に試してください。</p>
+            <p className="text-stone-500">人気AIツール1つ分より安く。どちらも14日間の返金保証つきなので、まず気軽に試してください。</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             {PLANS.map((plan) => (
@@ -646,7 +646,7 @@ export default function HomePage() {
               </a>
               <Link href="/checkout?plan=standard"
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-base px-8 py-4 rounded-full transition-colors">
-                月額3,980円で始める <ArrowRight size={16} />
+                月額1,480円で始める <ArrowRight size={16} />
               </Link>
             </div>
             <p className="text-stone-500 text-xs mt-6">カード登録なしで無料サンプル ／ 解約はいつでも1クリック</p>
