@@ -36,8 +36,10 @@ jobs:
       - name: 変更をコミット＆push
         id: commit
         run: |
-          git config user.name  "FBA週次マーケ社員"
-          git config user.email "bot@fba-trend-data.local"
+          # 作者メールはVercelチームメンバー(=アカウント)にする必要がある。
+          # 別メールだと TEAM_ACCESS_REQUIRED でデプロイがBLOCKされるため。
+          git config user.name  "月足昂誠"
+          git config user.email "yuezuangcheng@gmail.com"
           git add public/llms.txt instagram_content/hashtags_current.md
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
