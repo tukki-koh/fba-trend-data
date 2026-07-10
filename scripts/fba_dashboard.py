@@ -57,6 +57,11 @@ ORG = [
          "role": "構造化データ・メタ最適化・llms.txt更新", "src": "claude",
          "sched": {"type": "monthly", "day": 5, "h": 10, "m": 0}},
     ]},
+    {"dept": "経営企画・成長室", "icon": "🚀", "members": [
+        {"key": "growth-benchmark", "name": "成長・ベンチマーク担当（Claude常駐）",
+         "role": "世界最高水準の企業を手本に毎週1改善を実装・本番反映", "src": "claude",
+         "sched": {"type": "weekly", "slots": [(5, 10, 0)]}},  # 土10:00
+    ]},
 ]
 
 _state = {"now": "", "kpi": {}, "depts": [], "feed": [], "running_now": 0}
