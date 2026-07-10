@@ -52,14 +52,17 @@ ORG = [
          "sched": {"type": "weekly", "slots": [(6, 8, 30), (2, 19, 0), (4, 18, 0)]}},
         {"key": "weekly-marketing", "name": "週次マーケ担当（Claude常駐）",
          "role": "ハッシュタグ最適化・GEO更新・コピー改善", "src": "claude",
+         "sig": "週次マーケ", "interval_days": 7,
          "sched": {"type": "weekly", "slots": [(2, 10, 0)]}},  # 水10:00
         {"key": "monthly-seo", "name": "月次SEO/GEO担当（Claude常駐）",
          "role": "構造化データ・メタ最適化・llms.txt更新", "src": "claude",
+         "sig": "月次SEO/GEO", "interval_days": 31,
          "sched": {"type": "monthly", "day": 5, "h": 10, "m": 0}},
     ]},
     {"dept": "経営企画・成長室", "icon": "🚀", "members": [
         {"key": "growth-benchmark", "name": "成長・ベンチマーク担当（Claude常駐）",
          "role": "世界最高水準の企業を手本に毎週1改善を実装・本番反映", "src": "claude",
+         "sig": "成長:", "interval_days": 7,
          "sched": {"type": "weekly", "slots": [(5, 10, 0)]}},  # 土10:00
     ]},
 ]
@@ -113,6 +116,21 @@ def next_run(sched, now):
                 mo = 1; y += 1
         return None
     return None
+
+
+def git_last_ts(sig):
+    """コミットメッセージに sig を含む最新コミットのUNIX時刻。無ければ0。"""
+    if not sig:
+        return 0
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(BASE_DIR), "log", "-1", "--format=%ct", "--grep", sig],
+            capture_output=True, text=True, timeout=10,
+        )
+        s = r.stdout.strip()
+        return float(s) if s else 0
+    except Exception:
+        return 0
 
 
 def humanize(seconds):
@@ -217,20 +235,39 @@ def refresh():
             resident += 1
             if m["src"] == "gh":
                 js = job_status.get(m["job"], {})
-                state = js.get("state", "idle")
+                raw = js.get("state", "")
                 ts = js.get("ts", 0)
-            else:  # claude常駐（実行履歴はローカルに残らないため予定のみ）
-                state = "resident"
-                ts = 0
-            if state == "running":
+                if raw == "running":
+                    state = "run"          # いま実行中
+                elif raw == "done":
+                    state = "ok"           # 直近成功＝正常稼働
+                elif raw == "error":
+                    state = "error"        # 直近失敗＝要確認
+                else:
+                    state = "warn"         # 実行履歴を取得できず
+            else:  # claude常駐：git履歴で実稼働を判定
+                ts = git_last_ts(m.get("sig", ""))
+                interval = m.get("interval_days", 7) * 86400
+                if ts and (now.timestamp() - ts) < interval * 1.4:
+                    state = "ok"           # 予定どおり稼働
+                else:
+                    state = "warn"         # 未実行 or 予定を超過
+
+            # 「稼働中」= 正常に稼働している社員（実行中＋直近成功）
+            if state in ("ok", "run"):
                 running += 1
-            if state == "done":
                 ok_cnt += 1
-            if state == "error":
+            elif state == "error":
                 err_cnt += 1
+
             nr = next_run(m["sched"], now)
             next_txt = f"あと{humanize((nr - now).total_seconds())}" if nr else "-"
-            last_txt = f"{humanize(now.timestamp() - ts)}前" if ts else ("常駐待機" if m["src"] == "claude" else "履歴なし")
+            if ts:
+                last_txt = f"{humanize(now.timestamp() - ts)}前"
+            elif m["src"] == "claude":
+                last_txt = "未実行"
+            else:
+                last_txt = "履歴なし"
             members.append({
                 "name": m["name"], "role": m["role"], "state": state,
                 "next": next_txt, "last": last_txt,
@@ -318,12 +355,13 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .mem.run{border-color:rgba(55,211,153,.5);box-shadow:0 0 0 1px rgba(55,211,153,.25) inset}
 .mrow{display:flex;align-items:center;gap:9px}
 .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
-.sdot.run{background:var(--green);animation:pulse 1.4s infinite}.sdot.done{background:var(--green)}
-.sdot.idle{background:var(--mut2)}.sdot.error{background:var(--red)}.sdot.resident{background:var(--violet)}
+.sdot.run{background:var(--green);animation:pulse 1.4s infinite}.sdot.ok{background:var(--green)}
+.sdot.idle{background:var(--mut2)}.sdot.error{background:var(--red)}.sdot.warn{background:var(--amber)}.sdot.resident{background:var(--violet)}
 .mname{font-weight:700;font-size:14px}.mrole{font-size:11px;color:var(--mut);margin-top:1px}
 .badge{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:999px;background:#0b1020;border:1px solid var(--bd);color:var(--mut);font-weight:700}
-.badge.done,.badge.run{color:#a7f3d0;background:rgba(55,211,153,.12);border-color:rgba(55,211,153,.4)}
+.badge.ok,.badge.run{color:#a7f3d0;background:rgba(55,211,153,.12);border-color:rgba(55,211,153,.4)}
 .badge.error{color:#fecaca;background:rgba(255,93,108,.14);border-color:rgba(255,93,108,.4)}
+.badge.warn{color:#ffe0a3;background:rgba(245,182,66,.14);border-color:rgba(245,182,66,.45)}
 .badge.resident{color:#cbc2ff;background:rgba(122,107,255,.14);border-color:rgba(122,107,255,.4)}
 .meta{display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--mut)}
 .feed{margin-top:16px;background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:15px 16px}
@@ -348,7 +386,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 <div class="foot">⚡ <b>GitHub Actions</b> で 24時間365日 稼働中 ・ 8秒ごとに自動更新</div>
 </div>
 <script>
-const label={running:'稼働中',done:'完了',idle:'待機',error:'エラー',resident:'常駐'};
+const label={run:'実行中',ok:'稼働中',error:'要確認',warn:'未実行',idle:'待機',resident:'常駐'};
 async function tick(){
  try{
   const s=await(await fetch('/api/state',{cache:'no-store'})).json();
@@ -367,7 +405,7 @@ async function tick(){
    ['直近ジョブ成功率',(k.success_rate||0)+'<small> %</small>'],
   ].map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
   org.innerHTML=s.depts.map(d=>`<div class="dept"><h3>${d.icon} ${d.dept}</h3>${d.members.map(m=>{
-    const cls=m.state; return `<div class="mem ${m.state==='running'?'run':''}">
+    const cls=m.state; return `<div class="mem ${m.state==='run'?'run':''}">
       <div class="mrow"><span class="sdot ${cls}"></span>
       <div><div class="mname">${m.name}</div><div class="mrole">${m.role}</div></div>
       <span class="badge ${cls}">${label[m.state]||'待機'}</span></div>
