@@ -251,10 +251,16 @@ def refresh():
     total = ok_cnt + err_cnt
     success_rate = int(ok_cnt / total * 100) if total else 100
 
+    # 本日の活動（今日実行されたジョブ数）
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    today_activity = sum(1 for ts, _, _ in feed_raw if ts >= midnight)
+
     with _lock:
         _state.update({
             "now": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "hhmm": now.strftime("%H:%M:%S"),
             "running_now": running,
+            "today_activity": today_activity,
             "kpi": {"active": active, "trial": trial, "reports": reports,
                     "resident": resident, "success_rate": success_rate},
             "depts": depts, "feed": feed,
@@ -270,76 +276,95 @@ def refresh_loop():
         time.sleep(REFRESH_SEC)
 
 
-# ─── HTML（サイトと同じ amber/stone・明るいテーマ）─────────
+# ─── HTML（WorkShield風・ダークテーマ）──────────────────────
 INDEX_HTML = """<!doctype html>
 <html lang="ja"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FBAトレンドレーダー LIVE 稼働状況</title>
 <style>
-:root{--bg:#faf9f7;--panel:#fff;--bd:#e7e2db;--tx:#1c1917;--mut:#78716c;
---amber:#f59e0b;--amber2:#d97706;--green:#16a34a;--red:#dc2626;--violet:#7c3aed;}
+:root{
+ --bg:#0b1020;--bg2:#0e1526;--panel:#121a30;--panel2:#0e1526;--bd:#22304f;
+ --tx:#e8edf7;--mut:#8ea0c0;--mut2:#5b6b8c;
+ --blue:#5b8cff;--violet:#7a6bff;--green:#37d399;--amber:#f5b642;--red:#ff5d6c;}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);
-font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1120px;margin:0 auto;padding:22px 18px 60px}
-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
-.logo{width:32px;height:32px;border-radius:9px;background:var(--amber);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
-.sub{font-size:11px;color:var(--mut);font-weight:600}
-.live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--mut)}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)}70%{box-shadow:0 0 0 9px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.kpi{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
-.kpi .l{font-size:11px;color:var(--mut);margin-bottom:6px}
-.kpi .v{font-size:25px;font-weight:800;letter-spacing:-.02em}
+body{margin:0;background:
+ radial-gradient(900px 500px at 85% -10%,rgba(122,107,255,.10),transparent),
+ radial-gradient(900px 500px at 0% 0%,rgba(91,140,255,.10),transparent),var(--bg);
+ color:var(--tx);font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 18px 40px}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px;letter-spacing:-.01em}
+.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--violet));
+ color:#fff;display:grid;place-items:center;font-size:17px;box-shadow:0 6px 20px rgba(91,140,255,.35)}
+.sub{font-size:11px;color:var(--mut);font-weight:600;margin-top:1px}
+.livebadge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--green);
+ background:rgba(55,211,153,.10);border:1px solid rgba(55,211,153,.35);padding:6px 12px;border-radius:999px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(55,211,153,.55)}70%{box-shadow:0 0 0 8px rgba(55,211,153,0)}100%{box-shadow:0 0 0 0 rgba(55,211,153,0)}}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.kpi{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:15px 16px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;height:100%;width:3px;background:var(--blue);opacity:.8}
+.kpi.g::after{background:var(--green)}.kpi.v::after{background:var(--violet)}.kpi.a::after{background:var(--amber)}
+.kpi .l{font-size:11px;color:var(--mut);margin-bottom:7px}
+.kpi .v{font-size:26px;font-weight:800;letter-spacing:-.02em}
 .kpi .v small{font-size:12px;color:var(--mut);font-weight:600}
+.kpis.sub2{grid-template-columns:repeat(4,1fr);margin-bottom:20px}
+.kpis.sub2 .kpi{padding:11px 14px}.kpis.sub2 .v{font-size:20px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.dept{background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:14px 15px}
-.dept h3{margin:0 0 12px;font-size:13px;color:var(--mut);font-weight:800;letter-spacing:.03em}
-.mem{background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:12px 13px;margin-bottom:10px}
-.mem:last-child{margin-bottom:0}.mem.run{border-color:var(--green);box-shadow:0 0 0 2px rgba(22,163,74,.12)}
+.dept{background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:15px}
+.dept h3{margin:0 0 12px;font-size:12.5px;color:var(--mut);font-weight:800;letter-spacing:.05em}
+.mem{background:var(--panel2);border:1px solid var(--bd);border-radius:12px;padding:12px 13px;margin-bottom:10px}
+.mem:last-child{margin-bottom:0}
+.mem.run{border-color:rgba(55,211,153,.5);box-shadow:0 0 0 1px rgba(55,211,153,.25) inset}
 .mrow{display:flex;align-items:center;gap:9px}
 .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
 .sdot.run{background:var(--green);animation:pulse 1.4s infinite}.sdot.done{background:var(--green)}
-.sdot.idle{background:#c9beb0}.sdot.error{background:var(--red)}.sdot.resident{background:var(--violet)}
+.sdot.idle{background:var(--mut2)}.sdot.error{background:var(--red)}.sdot.resident{background:var(--violet)}
 .mname{font-weight:700;font-size:14px}.mrole{font-size:11px;color:var(--mut);margin-top:1px}
-.badge{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:999px;background:#f5f0e8;border:1px solid var(--bd);color:var(--mut);font-weight:700}
-.badge.done{color:#166534;background:#dcfce7;border-color:#bbf7d0}
-.badge.error{color:#991b1b;background:#fee2e2;border-color:#fecaca}
-.badge.run{color:#166534;background:#dcfce7;border-color:#86efac}
-.badge.resident{color:#5b21b6;background:#ede9fe;border-color:#ddd6fe}
+.badge{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:999px;background:#0b1020;border:1px solid var(--bd);color:var(--mut);font-weight:700}
+.badge.done,.badge.run{color:#a7f3d0;background:rgba(55,211,153,.12);border-color:rgba(55,211,153,.4)}
+.badge.error{color:#fecaca;background:rgba(255,93,108,.14);border-color:rgba(255,93,108,.4)}
+.badge.resident{color:#cbc2ff;background:rgba(122,107,255,.14);border-color:rgba(122,107,255,.4)}
 .meta{display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--mut)}
-.feed{margin-top:16px;background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:14px 16px}
-.feed h3{margin:0 0 10px;font-size:13px;color:var(--mut)}
-.fitem{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--bd);font-size:12.5px}
-.fitem:first-of-type{border-top:0}.fwho{color:var(--amber2);font-weight:800;flex:0 0 110px}
-.ftxt{color:#44403c;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fago{color:var(--mut)}
-@media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+.feed{margin-top:16px;background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:15px 16px}
+.feed h3{margin:0 0 10px;font-size:12.5px;color:var(--mut);font-weight:800}
+.fitem{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:12.5px}
+.fitem:first-of-type{border-top:0}.fwho{color:#bcd0ff;font-weight:800;flex:0 0 110px}
+.ftxt{color:#c7d2e8;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fago{color:var(--mut)}
+.foot{margin-top:18px;text-align:center;font-size:12px;color:var(--mut)}
+.foot b{color:var(--green)}
+@media(max-width:820px){.kpis,.kpis.sub2{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
 </style></head>
 <body><div class="wrap">
 <header>
-  <div class="brand"><div class="logo">FB</div>
-    <div>FBAトレンドレーダー<div class="sub">LIVE 稼働ダッシュボード</div></div></div>
-  <div class="live"><span class="dot"></span><span id="clock">—</span>・稼働中 <b id="runct">0</b> 名</div>
+  <div class="brand"><div class="logo">📡</div>
+    <div>FBAトレンドレーダー<div class="sub">AI社員 稼働モニタリング</div></div></div>
+  <div class="livebadge"><span class="dot"></span>LIVE ・ <span id="clock">—</span></div>
 </header>
 <div class="kpis" id="kpis"></div>
+<div class="kpis sub2" id="kpis2"></div>
 <div class="grid" id="org"></div>
-<div class="feed"><h3>🛰️ 活動フィード（GitHub Actions 実行履歴）</h3><div id="feed"></div></div>
+<div class="feed"><h3>🛰️ 活動フィード</h3><div id="feed"></div></div>
+<div class="foot">⚡ <b>GitHub Actions</b> で 24時間365日 稼働中 ・ 8秒ごとに自動更新</div>
 </div>
 <script>
 const label={running:'稼働中',done:'完了',idle:'待機',error:'エラー',resident:'常駐'};
 async function tick(){
  try{
   const s=await(await fetch('/api/state',{cache:'no-store'})).json();
-  clock.textContent=s.now; runct.textContent=s.running_now;
+  clock.textContent=s.hhmm||s.now;
   const k=s.kpi||{};
   kpis.innerHTML=[
+   ['稼働中',(s.running_now||0)+'<small> 名</small>','g'],
+   ['社員数',(k.resident||0)+'<small> 名</small>','v'],
+   ['本日の活動',(s.today_activity||0)+'<small> 件</small>','a'],
+   ['最終更新',(s.hhmm||'—'),''],
+  ].map(([l,v,c])=>`<div class="kpi ${c}"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
+  kpis2.innerHTML=[
    ['有効会員',(k.active||0)+'<small> 名</small>'],
    ['トライアル',(k.trial||0)+'<small> 名</small>'],
    ['配信レポート',(k.reports||0)+'<small> 本</small>'],
    ['直近ジョブ成功率',(k.success_rate||0)+'<small> %</small>'],
-   ['稼働社員',(k.resident||0)+'<small> 名</small>'],
   ].map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
   org.innerHTML=s.depts.map(d=>`<div class="dept"><h3>${d.icon} ${d.dept}</h3>${d.members.map(m=>{
     const cls=m.state; return `<div class="mem ${m.state==='running'?'run':''}">
@@ -351,7 +376,7 @@ async function tick(){
   feed.innerHTML=(s.feed||[]).map(f=>`<div class="fitem"><span class="fwho">${f.who}</span><span class="ftxt">${f.text}</span><span class="fago">${f.ago}</span></div>`).join('')||'<div class="fitem"><span class="ftxt">履歴を取得中…</span></div>';
  }catch(e){}
 }
-tick();setInterval(tick,5000);
+tick();setInterval(tick,8000);
 </script>
 </body></html>"""
 
