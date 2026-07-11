@@ -14,6 +14,9 @@ const PLANS = [
   {
     name: "スタンダード",
     price: "1,480",
+    anchorPrice: "5,000",
+    anchorLabel: "自分でリサーチ代行を頼んだ場合の目安",
+    savingsBadge: "70%以上お得",
     description: "週1回のリサーチで十分な方に",
     features: [
       "週次トレンドレポート（PDF形式）",
@@ -30,6 +33,9 @@ const PLANS = [
   {
     name: "プロ",
     price: "2,480",
+    anchorPrice: "12,000",
+    anchorLabel: "20カテゴリ分を代行依頼した場合の目安",
+    savingsBadge: "79%お得",
     description: "本腰を入れて仕入れデータを使い倒したい方に",
     features: [
       "スタンダードの内容すべて",
@@ -508,9 +514,15 @@ export default function HomePage() {
                 )}
                 <div className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-amber-400" : "text-amber-600"}`}>{plan.name}</div>
                 <div className={`text-sm mb-5 ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>{plan.description}</div>
-                <div className="flex items-baseline gap-1 mb-1">
+                <div className={`text-xs mb-1.5 ${plan.highlight ? "text-stone-500" : "text-stone-400"}`}>
+                  {plan.anchorLabel}　<span className="line-through">¥{plan.anchorPrice}</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1 flex-wrap">
                   <span className={`text-4xl font-bold tracking-tight ${plan.highlight ? "text-white" : "text-stone-900"}`}>¥{plan.price}</span>
                   <span className={`text-sm ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>/月（税込）</span>
+                  <span className={`inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    plan.highlight ? "bg-emerald-400/15 text-emerald-300" : "bg-emerald-50 text-emerald-700"
+                  }`}>{plan.savingsBadge}</span>
                 </div>
                 <div className={`text-xs mb-7 ${plan.highlight ? "text-stone-500" : "text-stone-400"}`}>月額自動更新・いつでも解約可</div>
                 <ul className="space-y-3 mb-8 flex-1">
