@@ -59,6 +59,12 @@ ORG = [
          "sig": "月次SEO/GEO", "interval_days": 31,
          "sched": {"type": "monthly", "day": 5, "h": 10, "m": 0}},
     ]},
+    {"dept": "広告本部", "icon": "📣", "members": [
+        {"key": "google-ads", "name": "Google広告最適化担当（Claude常駐）",
+         "role": "最適化スコア向上のアセットを毎週改善", "src": "claude",
+         "sig": "広告最適化", "interval_days": 7,
+         "sched": {"type": "weekly", "slots": [(2, 9, 30)]}},  # 水9:30
+    ]},
     {"dept": "経営企画・成長室", "icon": "🚀", "members": [
         {"key": "growth-benchmark", "name": "成長・ベンチマーク担当（Claude常駐）",
          "role": "世界最高水準の企業を手本に毎週1改善を実装・本番反映", "src": "claude",
