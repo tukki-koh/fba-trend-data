@@ -363,6 +363,29 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
 .sdot.run{background:var(--green);animation:pulse 1.4s infinite}.sdot.ok{background:var(--green)}
 .sdot.idle{background:var(--mut2)}.sdot.error{background:var(--red)}.sdot.warn{background:var(--amber)}.sdot.resident{background:var(--violet)}
+/* 稼働キャラクター */
+.bot{width:34px;height:34px;flex:0 0 auto;position:relative}
+.bot svg{width:100%;height:100%;display:block;transform-origin:50% 90%}
+.bot .eye{transform-origin:center;transform-box:fill-box}
+/* 稼働中(ok/run)=元気に動く */
+.bot.act svg{animation:bob .9s ease-in-out infinite}
+.bot.act .arm{animation:type .5s ease-in-out infinite;transform-origin:top;transform-box:fill-box}
+.bot.act .armR{animation-delay:.25s}
+.bot.act .eye{animation:blink 2.6s infinite}
+.bot.act .spark{animation:spark 1.2s ease-out infinite}
+/* 停止/未実行=眠る */
+.bot.sleep{opacity:.55}
+.bot.sleep svg{animation:snooze 3s ease-in-out infinite}
+.bot.sleep .eye{transform:scaleY(.12)}
+.bot.sleep .zzz{animation:zzz 2.4s ease-out infinite}
+.bot.err svg{animation:shake .4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes type{0%,100%{transform:rotate(0)}50%{transform:rotate(-32deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+@keyframes spark{0%{opacity:0;transform:translateY(2px) scale(.6)}40%{opacity:1}100%{opacity:0;transform:translateY(-8px) scale(1)}}
+@keyframes snooze{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(1px) rotate(2deg)}}
+@keyframes zzz{0%{opacity:0;transform:translate(0,0) scale(.6)}30%{opacity:.9}100%{opacity:0;transform:translate(6px,-9px) scale(1.1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
 .mname{font-weight:700;font-size:14px}.mrole{font-size:11px;color:var(--mut);margin-top:1px}
 .badge{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:999px;background:#0b1020;border:1px solid var(--bd);color:var(--mut);font-weight:700}
 .badge.ok,.badge.run{color:#a7f3d0;background:rgba(55,211,153,.12);border-color:rgba(55,211,153,.4)}
@@ -393,6 +416,21 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 </div>
 <script>
 const label={run:'実行中',ok:'稼働中',error:'要確認',warn:'未実行',idle:'待機',resident:'常駐'};
+function bot(mood){
+  const c=mood==='act'?'#37d399':mood==='err'?'#ff5d6c':'#7a6bff';
+  return `<span class="bot ${mood}"><svg viewBox="0 0 40 40">
+    <text class="spark" x="31" y="9" font-size="8" fill="#f5b642" ${mood==='act'?'':'opacity="0"'}>✦</text>
+    <text class="zzz" x="30" y="10" font-size="9" fill="#8ea0c0" ${mood==='sleep'?'':'opacity="0"'}>z</text>
+    <rect class="arm armL" x="7" y="22" width="4" height="9" rx="2" fill="${c}"/>
+    <rect class="arm armR" x="29" y="22" width="4" height="9" rx="2" fill="${c}"/>
+    <rect x="10" y="14" width="20" height="18" rx="7" fill="${c}"/>
+    <rect x="14" y="20" width="12" height="8" rx="3" fill="#0b1020"/>
+    <circle class="eye" cx="18" cy="24" r="1.7" fill="#e8edf7"/>
+    <circle class="eye" cx="22" cy="24" r="1.7" fill="#e8edf7"/>
+    <line x1="20" y1="10" x2="20" y2="14" stroke="${c}" stroke-width="2"/>
+    <circle cx="20" cy="9" r="2.4" fill="${c}"/>
+  </svg></span>`;
+}
 async function tick(){
  try{
   const s=await(await fetch('/api/state',{cache:'no-store'})).json();
@@ -411,8 +449,10 @@ async function tick(){
    ['直近ジョブ成功率',(k.success_rate||0)+'<small> %</small>'],
   ].map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
   org.innerHTML=s.depts.map(d=>`<div class="dept"><h3>${d.icon} ${d.dept}</h3>${d.members.map(m=>{
-    const cls=m.state; return `<div class="mem ${m.state==='run'?'run':''}">
-      <div class="mrow"><span class="sdot ${cls}"></span>
+    const cls=m.state;
+    const mood=(m.state==='ok'||m.state==='run')?'act':(m.state==='error'?'err':'sleep');
+    return `<div class="mem ${m.state==='run'?'run':''}">
+      <div class="mrow">${bot(mood)}
       <div><div class="mname">${m.name}</div><div class="mrole">${m.role}</div></div>
       <span class="badge ${cls}">${label[m.state]||'待機'}</span></div>
       <div class="meta"><span>⏱ 次回: ${m.next}</span><span>最終稼働: ${m.last}</span></div>
