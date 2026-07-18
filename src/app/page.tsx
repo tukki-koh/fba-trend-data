@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Script from "next/script";
 import FreeSampleForm from "@/components/FreeSampleForm";
+import HeroEmailCapture from "@/components/HeroEmailCapture";
 
 export const metadata: Metadata = {
   title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
@@ -315,16 +316,13 @@ export default function HomePage() {
               5カテゴリ分のリサーチが、コーヒーを淹れる間に終わります。
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-7">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center lg:justify-start mb-7">
               <Link href="/checkout?plan=standard"
-                className="group inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40">
+                className="group shrink-0 inline-flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40">
                 月額1,480円で始める
                 <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
-              <a href="#free-sample"
-                className="inline-flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-800 hover:border-stone-300 text-base font-semibold px-7 py-4 rounded-full transition-colors">
-                <Gift size={18} className="text-amber-500" /> 無料で中身を見る
-              </a>
+              <HeroEmailCapture />
             </div>
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2">
