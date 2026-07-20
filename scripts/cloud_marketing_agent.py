@@ -43,7 +43,7 @@ SERVICE_FACTS = """
 
 def ask(prompt: str, max_tokens: int = 1200) -> str:
     msg = client.messages.create(
-        model="claude-opus-4-8", max_tokens=max_tokens,
+        model="claude-haiku-4-5", max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
     return msg.content[0].text.strip()
