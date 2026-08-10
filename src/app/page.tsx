@@ -539,6 +539,10 @@ export default function HomePage() {
                   }`}>
                   {plan.cta}
                 </Link>
+                <div className={`flex items-center justify-center gap-1.5 text-xs mt-3 ${plan.highlight ? "text-stone-400" : "text-stone-400"}`}>
+                  <ShieldCheck size={13} className={plan.highlight ? "text-emerald-400" : "text-emerald-500"} />
+                  14日間全額返金・いつでも解約可
+                </div>
               </div>
             ))}
           </div>
