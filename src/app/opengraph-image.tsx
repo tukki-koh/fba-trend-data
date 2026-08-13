@@ -1,11 +1,17 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
-export const runtime = "edge";
 export const alt = "FBAトレンドレーダー｜Amazon売れ筋トレンドを毎週自動配信";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OgImage() {
+export default async function OgImage() {
+  // 背景写真を data URI 化して埋め込む。
+  // Satori(ImageResponse) は WebP を扱えないため、必ず JPEG を使うこと。
+  const bg = await readFile(join(process.cwd(), "public/images/ogp-flatlay.jpg"));
+  const bgSrc = `data:image/jpeg;base64,${bg.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -13,51 +19,96 @@ export default function OgImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
-          background: "linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%)",
-          padding: "60px",
+          position: "relative",
           fontFamily: "sans-serif",
         }}
       >
-        {/* 暗いオーバーレイ */}
+        {/* 背景写真 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={bgSrc}
+          alt=""
+          width={1200}
+          height={630}
+          style={{ position: "absolute", inset: 0, width: "1200px", height: "630px", objectFit: "cover" }}
+        />
+
+        {/* 可読性のための遮蔽。
+            Satori の注意点: `inset` は効かないので top/left/width/height を明示する。
+            勾配も `background` ショートハンドではなく backgroundImage を使う。 */}
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.35)",
+            top: 0,
+            left: 0,
+            width: "1200px",
+            height: "630px",
             display: "flex",
+            backgroundColor: "rgba(18,16,14,0.62)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "1200px",
+            height: "630px",
+            display: "flex",
+            backgroundImage:
+              "linear-gradient(90deg, rgba(16,14,12,0.92) 0%, rgba(16,14,12,0.78) 45%, rgba(16,14,12,0.10) 100%)",
           }}
         />
 
         {/* コンテンツ */}
-        <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%" }}>
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            width: "100%",
+            padding: "58px 64px",
+          }}
+        >
           {/* バッジ */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              background: "rgba(255,255,255,0.2)",
+              background: "rgba(245,158,11,0.18)",
+              border: "1px solid rgba(245,158,11,0.5)",
               borderRadius: "999px",
-              padding: "8px 24px",
-              width: "fit-content",
-              marginBottom: "32px",
+              padding: "9px 22px",
+              // Satori は width:"fit-content" 非対応。alignSelf で内容幅に収める
+              alignSelf: "flex-start",
+              marginBottom: "28px",
             }}
           >
-            <span style={{ color: "white", fontSize: "22px", fontWeight: "bold" }}>
-              📦 毎週月曜日に自動配信
+            <span style={{ color: "#fcd34d", fontSize: "21px", fontWeight: 700 }}>
+              毎週月曜 AM7:00 に自動配信
             </span>
           </div>
 
-          {/* メインタイトル */}
+          {/* メイン */}
           <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <div style={{ fontSize: "72px", fontWeight: "900", color: "white", lineHeight: 1.1, marginBottom: "16px" }}>
-              FBAトレンドレーダー
+            <div
+              style={{
+                fontSize: "62px",
+                fontWeight: 900,
+                color: "white",
+                lineHeight: 1.15,
+                letterSpacing: "-0.02em",
+                marginBottom: "20px",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <span>仕入れリサーチは、</span>
+              <span>週1通のメールだけでいい。</span>
             </div>
-            <div style={{ fontSize: "40px", color: "#fed7aa", fontWeight: "700", marginBottom: "32px" }}>
-              Amazon売れ筋を毎週データで先回り
-            </div>
-            <div style={{ fontSize: "28px", color: "#fff7ed", lineHeight: 1.6 }}>
-              全5カテゴリ × TOP10 完全公開
+            <div style={{ fontSize: "27px", color: "#e7e5e4", lineHeight: 1.55, display: "flex" }}>
+              Amazon JPの売れ筋TOP10を5カテゴリ、価格・リンク付きでお届け
             </div>
           </div>
 
@@ -65,14 +116,17 @@ export default function OgImage() {
           <div
             style={{
               display: "flex",
-              gap: "40px",
-              borderTop: "1px solid rgba(255,255,255,0.3)",
-              paddingTop: "28px",
-              marginTop: "auto",
+              gap: "26px",
+              alignItems: "center",
+              borderTop: "1px solid rgba(255,255,255,0.22)",
+              paddingTop: "22px",
             }}
           >
-            {["✅ せどり・FBA仕入れに", "✅ 月額1,480円〜", "✅ 14日返金保証", "✅ いつでも解約OK"].map((item) => (
-              <span key={item} style={{ color: "white", fontSize: "22px", fontWeight: "600" }}>
+            <span style={{ color: "#fcd34d", fontSize: "24px", fontWeight: 800 }}>
+              FBAトレンドレーダー
+            </span>
+            {["月額1,480円〜", "14日間返金保証", "カード登録不要"].map((item) => (
+              <span key={item} style={{ color: "#e7e5e4", fontSize: "19px", fontWeight: 600 }}>
                 {item}
               </span>
             ))}

@@ -1,4 +1,5 @@
 import { CheckCircle, TrendingUp, Clock, ShieldCheck, ArrowRight, Gift, Mail, FileText, Search } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Script from "next/script";
@@ -258,6 +259,14 @@ function ReportPreview() {
   );
 }
 
+const CATEGORIES = [
+  { name: "ペット用品", img: "/images/cat-pet.webp", alt: "犬用のリードとおもちゃ" },
+  { name: "アウトドア", img: "/images/cat-outdoor.webp", alt: "キャンバス地のバックパックと水筒" },
+  { name: "キッチン", img: "/images/cat-kitchen.webp", alt: "木製のキッチンツールとリネンクロス" },
+  { name: "ビューティー", img: "/images/cat-beauty.webp", alt: "スキンケア用のボトル" },
+  { name: "ベビー", img: "/images/cat-baby.webp", alt: "ベビー用のブランケットと木のおもちゃ" },
+];
+
 const TRUST_CHIPS = [
   { icon: <ShieldCheck size={15} />, label: "14日間 全額返金保証" },
   { icon: <CheckCircle size={15} />, label: "カード登録なしで試せる" },
@@ -373,6 +382,26 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* 生活イメージ */}
+        <div className="max-w-4xl mx-auto mt-12">
+          <figure className="relative rounded-3xl overflow-hidden border border-stone-200">
+            <Image
+              src="/images/hero-lifestyle.webp"
+              alt="月曜の朝、届いたレポートをスマートフォンで確認している様子"
+              width={1200}
+              height={654}
+              className="w-full h-auto"
+              sizes="(max-width: 768px) 100vw, 896px"
+            />
+            <figcaption className="absolute bottom-3 right-3 bg-stone-900/60 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm">
+              イメージ写真
+            </figcaption>
+          </figure>
+          <p className="text-center text-stone-500 text-sm mt-4">
+            届いたメールを開くだけ。リサーチにあてていた時間が、そのまま空きます。
+          </p>
+        </div>
+
         {/* Before / After */}
         <div className="max-w-4xl mx-auto mt-14 grid md:grid-cols-2 gap-5">
           <div className="bg-white rounded-2xl border border-stone-200 p-7">
@@ -482,6 +511,31 @@ export default function HomePage() {
                 <p className="text-stone-500 text-sm leading-relaxed">{feat.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* 対象カテゴリ */}
+          <div className="mt-14">
+            <div className="flex items-baseline justify-between mb-5 flex-wrap gap-2">
+              <h3 className="font-semibold text-stone-900">毎週お届けする5カテゴリ</h3>
+              <span className="text-xs text-stone-400">各カテゴリ TOP10 ／ 写真はイメージです</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {CATEGORIES.map((c) => (
+                <div key={c.name} className="group relative rounded-2xl overflow-hidden border border-stone-200">
+                  <Image
+                    src={c.img}
+                    alt={c.alt}
+                    width={600}
+                    height={600}
+                    className="w-full h-auto aspect-square object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-900/85 to-transparent pt-8 pb-3 px-3">
+                    <span className="text-white text-sm font-semibold">{c.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
