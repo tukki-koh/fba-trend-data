@@ -1,4 +1,4 @@
-import { CheckCircle, TrendingUp, Clock, ShieldCheck, ArrowRight, Gift, Mail, FileText, Search, Star } from "lucide-react";
+import { CheckCircle, TrendingUp, Clock, ShieldCheck, ArrowRight, Gift, Mail, FileText, Search } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Script from "next/script";
@@ -15,9 +15,7 @@ const PLANS = [
   {
     name: "スタンダード",
     price: "1,480",
-    anchorPrice: "5,000",
-    anchorLabel: "自分でリサーチ代行を頼んだ場合の目安",
-    savingsBadge: "70%以上お得",
+    note: "5カテゴリ × TOP10（毎週50商品）",
     description: "週1回のリサーチで十分な方に",
     features: [
       "週次トレンドレポート（PDF形式）",
@@ -34,9 +32,7 @@ const PLANS = [
   {
     name: "プロ",
     price: "2,480",
-    anchorPrice: "12,000",
-    anchorLabel: "20カテゴリ分を代行依頼した場合の目安",
-    savingsBadge: "79%お得",
+    note: "20カテゴリに拡張 ＋ Excel・価格アラート",
     description: "本腰を入れて仕入れデータを使い倒したい方に",
     features: [
       "スタンダードの内容すべて",
@@ -507,21 +503,16 @@ export default function HomePage() {
                 }`}>
                 {plan.highlight && (
                   <div className="absolute top-6 right-6 inline-flex items-center gap-1 bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
-                    <Star size={11} className="fill-white" /> 人気 No.1
+                    全20カテゴリ
                   </div>
                 )}
                 <div className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-amber-400" : "text-amber-600"}`}>{plan.name}</div>
                 <div className={`text-sm mb-5 ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>{plan.description}</div>
-                <div className={`text-xs mb-1.5 ${plan.highlight ? "text-stone-500" : "text-stone-400"}`}>
-                  {plan.anchorLabel}　<span className="line-through">¥{plan.anchorPrice}</span>
-                </div>
                 <div className="flex items-baseline gap-2 mb-1 flex-wrap">
                   <span className={`text-4xl font-bold tracking-tight ${plan.highlight ? "text-white" : "text-stone-900"}`}>¥{plan.price}</span>
                   <span className={`text-sm ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>/月（税込）</span>
-                  <span className={`inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    plan.highlight ? "bg-emerald-400/15 text-emerald-300" : "bg-emerald-50 text-emerald-700"
-                  }`}>{plan.savingsBadge}</span>
                 </div>
+                <div className={`text-xs mb-1.5 ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>{plan.note}</div>
                 <div className={`text-xs mb-7 ${plan.highlight ? "text-stone-500" : "text-stone-400"}`}>月額自動更新・いつでも解約可</div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f) => (
@@ -555,54 +546,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── お客様の声 ── */}
+      {/* ── 配信実績・データの出どころ（事実のみ） ── */}
       <section className="py-20 md:py-24 px-5 bg-white border-y border-stone-100">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-stone-900">使っている方の声</h2>
-            <p className="text-stone-500">実際に利用しているFBA出品者・せどらーの方からのコメントです。</p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-stone-900">配信実績と、データの出どころ</h2>
+            <p className="text-stone-500">誇張のない、確認できる事実だけを掲載しています。</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-5">
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
             {[
-              {
-                body: "仕入れリサーチに週3〜4時間かけていたのが、このメール1本で済むようになりました。具体的な商品名と価格が付いているので、受け取ってすぐ使えます。「まず何を見ればいいか」で悩む時間が一番もったいなかったので、そこが消えただけでかなり変わりました。",
-                name: "T.M.",
-                profile: "副業FBA・歴2年 / 30代男性",
-              },
-              {
-                body: "子育ての合間にリサーチする時間がなくて困っていました。毎週月曜の朝に届くので、週の仕入れ計画を立てるタイミングとちょうど合っています。自分でAmazonを見に行かなくていいのが、思っていた以上に楽でした。",
-                name: "K.Y.",
-                profile: "主婦・副業物販 / 40代女性",
-              },
-              {
-                body: "FBAを始めたばかりで、何を仕入れればいいのかまったく分からなかったです。ベストセラーのデータを見て、上位の商品を調べて真似するだけで最初の売上が立ちました。何から手をつければいいか分からなかったので助かりました。",
-                name: "R.I.",
-                profile: "FBA初心者 / 20代",
-              },
-              {
-                body: "以前は自分でAmazonを眺めてメモして…という作業をしていましたが、それが不要になった分、仕入れ自体に使える時間が増えました。データがシンプルなので、自分のスプレッドシートに転記しやすいのも地味に助かっています。",
-                name: "H.S.",
-                profile: "せどり経験者 / 30代男性",
-              },
-            ].map((t) => (
-              <div key={t.name} className="bg-[#faf9f7] border border-stone-200 rounded-2xl p-7">
-                <div className="flex gap-0.5 mb-4" aria-hidden>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-stone-700 text-sm leading-relaxed mb-6">{t.body}</p>
-                <div className="flex items-center gap-3 border-t border-stone-200 pt-4">
-                  <span className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 text-sm font-bold flex items-center justify-center">
-                    {t.name.charAt(0)}
-                  </span>
-                  <div>
-                    <div className="font-semibold text-stone-900 text-sm">{t.name} さん</div>
-                    <div className="text-xs text-stone-400">{t.profile}</div>
-                  </div>
-                </div>
+              { num: "25本", label: "これまでの配信レポート", sub: "2026年5月27日〜現在" },
+              { num: "11週", label: "連続配信", sub: "配信の抜けはありません" },
+              { num: "50商品", label: "毎週掲載する商品数", sub: "5カテゴリ × TOP10" },
+              { num: "月曜 7:00", label: "自動配信", sub: "収集から送信まで全自動" },
+            ].map((s) => (
+              <div key={s.label} className="bg-[#faf9f7] border border-stone-200 rounded-2xl p-6">
+                <div className="text-2xl font-bold text-stone-900 tracking-tight">{s.num}</div>
+                <div className="text-sm font-medium text-stone-700 mt-1.5">{s.label}</div>
+                <div className="text-xs text-stone-400 mt-1">{s.sub}</div>
               </div>
             ))}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="bg-[#faf9f7] border border-stone-200 rounded-2xl p-7">
+              <div className="flex items-center gap-2.5 mb-3">
+                <Search size={18} className="text-amber-500" />
+                <h3 className="font-semibold text-stone-900">データはどこから取っているか</h3>
+              </div>
+              <p className="text-stone-600 text-sm leading-relaxed">
+                Amazon JPが一般公開しているベストセラーページから、毎週自動で収集しています。
+                独自の推定値や予測は使っていないため、Amazonの表示と大きくずれることはありません。
+                出どころが確認できるデータだけを載せています。
+              </p>
+            </div>
+            <div className="bg-[#faf9f7] border border-stone-200 rounded-2xl p-7">
+              <div className="flex items-center gap-2.5 mb-3">
+                <ShieldCheck size={18} className="text-amber-500" />
+                <h3 className="font-semibold text-stone-900">お客様の声を載せていない理由</h3>
+              </div>
+              <p className="text-stone-600 text-sm leading-relaxed">
+                サービスを始めて日が浅く、掲載できる利用者の声がまだありません。
+                実在しない感想を載せることはしないので、ご利用の方から許諾をいただけ次第、
+                実際の声だけを掲載します。それまでは、無料サンプルで中身をご自身で確かめてください。
+              </p>
+            </div>
           </div>
         </div>
       </section>
