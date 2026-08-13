@@ -280,69 +280,112 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* ── ナビ ── */}
-      <nav className="fixed top-0 w-full bg-[#faf9f7]/85 backdrop-blur-md border-b border-stone-200/70 z-50">
+      <nav className="fixed top-0 w-full bg-stone-950/70 backdrop-blur-md border-b border-white/10 z-50">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          <span className="flex items-center gap-2 font-bold text-[15px] text-stone-900">
+          <span className="flex items-center gap-2 font-bold text-[15px] text-white">
             <span className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs">FB</span>
             FBAトレンドレーダー
           </span>
           <div className="flex items-center gap-5">
-            <a href="#pricing" className="hidden sm:inline text-sm text-stone-500 hover:text-stone-900 transition-colors">料金</a>
-            <a href="#faq" className="hidden sm:inline text-sm text-stone-500 hover:text-stone-900 transition-colors">よくある質問</a>
+            <a href="#pricing" className="hidden sm:inline text-sm text-stone-300 hover:text-white transition-colors">料金</a>
+            <a href="#faq" className="hidden sm:inline text-sm text-stone-300 hover:text-white transition-colors">よくある質問</a>
             <Link href="/checkout?plan=standard"
-              className="bg-stone-900 hover:bg-stone-800 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">
+              className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">
               今すぐ始める
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ── ヒーロー ── */}
-      <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 px-5 overflow-hidden">
-        {/* 背景の柔らかいグロー */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-gradient-to-b from-amber-100/60 via-amber-50/30 to-transparent blur-3xl -z-10" aria-hidden />
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_1fr] gap-14 lg:gap-10 items-center">
-          {/* 左：コピー */}
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-white border border-stone-200 text-stone-600 text-xs font-medium px-3.5 py-1.5 rounded-full mb-6 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Amazon FBA・せどり専用のトレンドデータ配信
+      {/* ── ヒーロー（全面写真） ── */}
+      {/* isolate: 背景写真と遮蔽を section 内で重ねるための独立スタッキング文脈 */}
+      <section className="relative isolate min-h-[92vh] sm:min-h-[88vh] flex items-center overflow-hidden bg-stone-950">
+        {/* 背景写真 */}
+        <Image
+          src="/images/hero-bg.webp"
+          alt=""
+          fill
+          priority
+          quality={85}
+          sizes="100vw"
+          className="object-cover object-center"
+          aria-hidden
+        />
+        {/* 可読性のための遮蔽（写真の上に二重に敷く） */}
+        <div className="absolute inset-0 bg-stone-950/55" aria-hidden />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-950/80 to-stone-950/35"
+          aria-hidden
+        />
+
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-5 pt-28 pb-16 sm:pt-32 sm:pb-20">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-amber-400/15 border border-amber-400/45 text-amber-200 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-7 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              毎週月曜 AM7:00 に自動配信
             </div>
-            <h1 className="text-[2.1rem] sm:text-5xl font-bold leading-[1.15] tracking-tight mb-6 text-stone-900" data-speakable>
+
+            <h1
+              className="text-[2rem] sm:text-[2.9rem] lg:text-[3.4rem] font-bold leading-[1.15] tracking-tight mb-6 text-white
+                         [text-shadow:0_2px_24px_rgba(0,0,0,0.55)]"
+              data-speakable
+            >
               仕入れリサーチは、<br />
-              <span className="relative inline-block">
-                <span className="relative z-10">週1通のメール</span>
-                <span className="absolute bottom-1 left-0 w-full h-3 bg-amber-200/70 -z-0" aria-hidden />
+              {/* sm以上は1行に固定。モバイルは語の途中で切れないよう塊ごとに折り返す */}
+              <span className="sm:whitespace-nowrap">
+                <span className="text-amber-300">週1通のメール</span>
+                <span className="inline-block">だけでいい。</span>
               </span>
-              <span className="inline-block">だけでいい。</span>
             </h1>
-            <p className="text-base sm:text-lg text-stone-600 mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0" data-speakable>
+
+            <p
+              className="text-base sm:text-xl text-stone-200 mb-9 leading-relaxed max-w-xl
+                         [text-shadow:0_1px_16px_rgba(0,0,0,0.6)]"
+              data-speakable
+            >
               Amazon JPの売れ筋ランキングTOP10を、毎週月曜の朝に自動でお届け。
               5カテゴリ分のリサーチが、コーヒーを淹れる間に終わります。
             </p>
 
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center lg:justify-start mb-7">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-8">
               <Link href="/checkout?plan=standard"
-                className="group shrink-0 inline-flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40">
+                className="group shrink-0 inline-flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-400 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-xl shadow-amber-900/40">
                 月額1,480円で始める
                 <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <HeroEmailCapture />
             </div>
 
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               {TRUST_CHIPS.map((c) => (
-                <span key={c.label} className="inline-flex items-center gap-1.5 text-[13px] text-stone-500">
-                  <span className="text-emerald-500">{c.icon}</span> {c.label}
+                <span key={c.label} className="inline-flex items-center gap-1.5 text-[13px] text-stone-200 font-medium">
+                  <span className="text-emerald-400">{c.icon}</span> {c.label}
                 </span>
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* 右：実物プレビュー */}
-          <div className="lg:pl-4">
-            <ReportPreview />
+      {/* ── 届くレポートの実物 ── */}
+      <section className="py-20 md:py-24 px-5">
+        {/* [&>*]:min-w-0 — grid の子は min-width:auto で内容幅まで膨らみ truncate が効かないため */}
+        <div className="max-w-5xl mx-auto grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] gap-12 lg:gap-14 items-center [&>*]:min-w-0">
+          <div>
+            <div className="text-sm font-semibold text-amber-600 mb-3">実際に届くもの</div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-stone-900 leading-snug">
+              月曜の朝、これが1通<br className="hidden sm:block" />届きます。
+            </h2>
+            <p className="text-stone-600 leading-relaxed mb-6">
+              5カテゴリのベストセラーTOP10を、商品名・その週の価格・Amazonへのリンクつきで
+              1枚のPDFにまとめています。開いてすぐ、仕入れ判断に使える形にしてあります。
+            </p>
+            <a href="#free-sample"
+              className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:underline">
+              <Gift size={16} /> 無料サンプルで中身を確認する
+            </a>
           </div>
+          <ReportPreview />
         </div>
       </section>
 
@@ -686,8 +729,9 @@ export default function HomePage() {
 
       {/* ── 最終CTA ── */}
       <section className="px-5 pb-24 pt-4">
-        <div className="max-w-4xl mx-auto bg-stone-900 rounded-3xl px-6 py-14 md:py-20 text-center relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-amber-500/20 blur-3xl" aria-hidden />
+        {/* overflow-hidden だけでは装飾グローが横スクロールを生むため max-w も併用 */}
+        <div className="max-w-4xl mx-auto bg-stone-900 rounded-3xl px-6 py-14 md:py-20 text-center relative overflow-hidden isolate">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] h-[300px] bg-amber-500/20 blur-3xl -z-10" aria-hidden />
           <div className="relative">
             <h2 className="text-2xl md:text-4xl font-bold mb-4 text-white leading-tight">
               今週のリサーチ、<br className="sm:hidden" />もう自分でやらなくていい。

@@ -63,7 +63,10 @@ export default function HeroEmailCapture() {
           )}
         </button>
       </form>
-      {status === "error" && <p className="text-red-500 text-xs mt-2">{message}</p>}
+      {/* ヒーローは暗い写真背景なので、明るい赤で可読性を確保 */}
+      {status === "error" && (
+        <p className="text-red-300 text-xs mt-2 [text-shadow:0_1px_8px_rgba(0,0,0,0.7)]">{message}</p>
+      )}
     </div>
   );
 }
