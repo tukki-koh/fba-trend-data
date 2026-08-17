@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import FreeSampleForm from "@/components/FreeSampleForm";
 import HeroEmailCapture from "@/components/HeroEmailCapture";
+import PlanPicker from "@/components/PlanPicker";
 
 export const metadata: Metadata = {
   title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
@@ -590,50 +591,7 @@ export default function HomePage() {
             <h2 className="text-2xl md:text-3xl font-bold mb-3 text-stone-900">シンプルな2つのプラン</h2>
             <p className="text-stone-500">人気AIツール1つ分より安く。どちらも14日間の返金保証つきなので、まず気軽に試してください。</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {PLANS.map((plan) => (
-              <div key={plan.name}
-                className={`relative rounded-3xl p-8 flex flex-col ${
-                  plan.highlight
-                    ? "bg-stone-900 text-white shadow-2xl shadow-stone-400/30"
-                    : "bg-white border border-stone-200"
-                }`}>
-                {plan.highlight && (
-                  <div className="absolute top-6 right-6 inline-flex items-center gap-1 bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
-                    全20カテゴリ
-                  </div>
-                )}
-                <div className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-amber-400" : "text-amber-600"}`}>{plan.name}</div>
-                <div className={`text-sm mb-5 ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>{plan.description}</div>
-                <div className="flex items-baseline gap-2 mb-1 flex-wrap">
-                  <span className={`text-4xl font-bold tracking-tight ${plan.highlight ? "text-white" : "text-stone-900"}`}>¥{plan.price}</span>
-                  <span className={`text-sm ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>/月（税込）</span>
-                </div>
-                <div className={`text-xs mb-1.5 ${plan.highlight ? "text-stone-400" : "text-stone-500"}`}>{plan.note}</div>
-                <div className={`text-xs mb-7 ${plan.highlight ? "text-stone-500" : "text-stone-400"}`}>月額自動更新・いつでも解約可</div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className={`flex items-start gap-2.5 text-sm ${plan.highlight ? "text-stone-200" : "text-stone-700"}`}>
-                      <CheckCircle size={16} className={`mt-0.5 shrink-0 ${plan.highlight ? "text-amber-400" : "text-amber-500"}`} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href={plan.href}
-                  className={`w-full text-center py-3.5 rounded-full font-semibold text-base transition-colors ${
-                    plan.highlight
-                      ? "bg-amber-500 hover:bg-amber-400 text-white"
-                      : "bg-stone-900 hover:bg-stone-800 text-white"
-                  }`}>
-                  {plan.cta}
-                </Link>
-                <div className={`flex items-center justify-center gap-1.5 text-xs mt-3 ${plan.highlight ? "text-stone-400" : "text-stone-400"}`}>
-                  <ShieldCheck size={13} className={plan.highlight ? "text-emerald-400" : "text-emerald-500"} />
-                  14日間全額返金・いつでも解約可
-                </div>
-              </div>
-            ))}
-          </div>
+          <PlanPicker plans={PLANS} />
           <p className="text-center text-stone-500 text-sm mt-8">
             決めきれないときは →{" "}
             <a href="#free-sample" className="text-amber-600 font-semibold hover:underline">
