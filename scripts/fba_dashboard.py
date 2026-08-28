@@ -330,7 +330,9 @@ INDEX_HTML = """<!doctype html>
  --tx:#e6ecfa;--mut:#8497bd;--mut2:#54648a;
  --cyan:#22d3ee;--amber:#f5b642;--green:#34d399;--red:#ff5d6c;--violet:#8b7bff;
  /* ビルの寸法（3D空間） */
- --W:600px; --D:200px; --FH:128px; --RY:-24deg; --RX:8deg;}
+ --W:600px; --D:230px; --FH:128px;
+ /* カメラ（JSから書き換える） */
+ --RY:-24deg; --RX:8deg; --TZ:-90px; --TX:56px;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--night);color:var(--tx);
  font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;font-size:13px;overflow-x:hidden}
@@ -370,10 +372,10 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 .skyline{position:absolute;left:0;right:0;bottom:0;height:200px;opacity:.45;pointer-events:none}
 
 /* ── 3D空間 ───────────────────────────────── */
-/* rotateYで見かけが左に寄るため translateX で中央へ戻す */
+/* カメラ: TX/TZ で寄り引き、RX/RY で回り込み。JSがCSS変数を書き換える */
 .world{position:relative;width:var(--W);height:calc(6 * var(--FH));
  margin:150px auto 0;transform-style:preserve-3d;
- transform:translate3d(56px,0,-90px) rotateX(var(--RX)) rotateY(var(--RY))}
+ transform:translate3d(var(--TX),0,var(--TZ)) rotateX(var(--RX)) rotateY(var(--RY))}
 /* 各階＝奥行きのある箱（正面は開口） */
 .fl{position:absolute;left:0;top:calc(var(--k) * var(--FH));width:var(--W);height:var(--FH);
  transform-style:preserve-3d}
@@ -386,7 +388,11 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 .deck{width:var(--W);height:var(--D);top:var(--FH);transform-origin:0 0;transform:rotateX(-90deg);
  background:linear-gradient(180deg,#0b1220,#131e33)}
 .ceilf{width:var(--W);height:var(--D);top:0;transform-origin:0 0;transform:rotateX(-90deg);
- background:linear-gradient(180deg,#0a101d,#0d1524)}
+ background:linear-gradient(180deg,#0a101d,#0d1524);transition:opacity .3s}
+/* 見下ろすと天井が邪魔になるので、俯瞰時だけ透過して室内を見せる（ドールハウス視点） */
+body.topview .ceilf{opacity:.12}
+body.topview .roof .top{opacity:.25}
+body.topview .rooftop{opacity:.35}
 /* 点灯階 */
 .fl.lit .back{background:linear-gradient(180deg,#1b2b49,#101a2e);box-shadow:0 0 40px rgba(60,150,220,.22) inset}
 .fl.lit .lft,.fl.lit .rgt{background:linear-gradient(90deg,#16243d,#0b1220)}
@@ -519,6 +525,39 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
  radial-gradient(ellipse 420px 260px at 700px 120px,rgba(70,150,220,.16),transparent 70%),
  linear-gradient(180deg,#080e1a,#05070f)}
 
+/* ── 四隅の柱（立方体の4面）でビルの塊感を出す ── */
+.col{position:absolute;top:-14px;left:0;width:0;height:calc(6 * var(--FH) + 14px);
+ transform-style:preserve-3d;transform:translate3d(var(--cx),0,var(--cz))}
+.col i{position:absolute;top:0;height:100%;width:24px;left:-12px;
+ background:linear-gradient(180deg,#2a3c5e,#0a1120);border-top:1px solid #3d5580}
+.col i:nth-child(1){transform:translateZ(12px)}
+.col i:nth-child(2){transform:rotateY(180deg) translateZ(12px);filter:brightness(.6)}
+.col i:nth-child(3){transform:rotateY(-90deg) translateZ(12px);filter:brightness(.78)}
+.col i:nth-child(4){transform:rotateY(90deg) translateZ(12px);filter:brightness(.78)}
+
+/* ── 屋上設備 ── */
+.rooftop{position:absolute;left:0;top:-14px;width:0;height:0;transform-style:preserve-3d}
+.gear{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;
+ transform:translate3d(var(--gx),0,var(--gz))}
+.gear .gt{position:absolute;left:0;top:0;width:var(--gw);height:var(--gd);transform-origin:0 0;
+ transform:translateY(calc(-1 * var(--gh))) rotateX(-90deg);
+ background:linear-gradient(160deg,#33496e,#1b2740)}
+.gear .gf{position:absolute;left:0;top:calc(-1 * var(--gh));width:var(--gw);height:var(--gh);
+ background:linear-gradient(180deg,#22334f,#111a2b)}
+.gear .gs{position:absolute;left:var(--gw);top:calc(-1 * var(--gh));width:var(--gd);height:var(--gh);
+ transform-origin:0 0;transform:rotateY(90deg);background:linear-gradient(180deg,#18253b,#0c1322)}
+
+/* ── カメラ操作UI ── */
+.cam{position:absolute;left:12px;top:12px;z-index:30;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+ background:rgba(6,11,22,.82);border:1px solid var(--edge);border-radius:9px;padding:7px 9px;backdrop-filter:blur(3px)}
+.cam button{font:inherit;font-size:11px;font-weight:800;color:#a9bfe0;cursor:pointer;
+ background:#0d1626;border:1px solid #26395c;border-radius:6px;padding:4px 10px;transition:.15s}
+.cam button:hover{background:#16243c;color:#dff0ff;border-color:#3c5c8c}
+.cam button.on{background:rgba(34,211,238,.16);color:#bff4ff;border-color:rgba(34,211,238,.6)}
+.cam .hint{font-size:10px;color:var(--mut2);margin-left:4px}
+.scene{cursor:grab}
+.scene.grabbing{cursor:grabbing}
+
 /* ── サイドパネル ─────────────────────────── */
 .side{display:flex;flex-direction:column;gap:12px;position:sticky;top:14px}
 .panel{background:linear-gradient(180deg,#0c1424,#080e1a);border:1px solid var(--edge);border-radius:12px;padding:12px 13px}
@@ -566,6 +605,17 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
         975,92 975,146 1040,146 1040,122 1100,122 1100,158 1160,158 1160,104 1200,104 1200,200 Z"/>
       <g fill="#1a2b4a" opacity=".8" id="cityWin"></g>
     </svg>
+    <div class="cam">
+      <button data-ry="0"   data-rx="4">正面</button>
+      <button data-ry="-24" data-rx="8">斜め</button>
+      <button data-ry="-34" data-rx="36">俯瞰</button>
+      <button data-ry="-70" data-rx="10">左から</button>
+      <button data-ry="46"  data-rx="10">右から</button>
+      <button data-ry="-20" data-rx="-8">見上げ</button>
+      <button id="autoBtn">自動回転</button>
+      <button id="resetBtn">リセット</button>
+      <span class="hint">ドラッグで回転 ／ ホイールでズーム</span>
+    </div>
     <div class="world" id="world"></div>
   </div>
 
@@ -653,7 +703,14 @@ async function tick(){
   const depts=(s.depts||[]).map((d,i)=>({...d,no:i+1}));
   // 上階ほど後ろの部署（5F=最後の部署）
   const order=depts.slice().reverse();
+  const cols=[['0px','0px'],['var(--W)','0px'],
+              ['0px','calc(-1 * var(--D))'],['var(--W)','calc(-1 * var(--D))']]
+    .map(([x,z])=>`<div class="col" style="--cx:${x};--cz:${z}"><i></i><i></i><i></i><i></i></div>`).join('');
+  const gears=[[90,-80,84,30,64],[210,-160,60,20,54],[330,-70,96,24,58],[470,-150,54,34,48]]
+    .map(([x,z,w,h,d])=>`<div class="gear" style="--gx:${x}px;--gz:${z}px;--gw:${w}px;--gh:${h}px;--gd:${d}px">
+       <i class="gt"></i><i class="gf"></i><i class="gs"></i></div>`).join('');
   let html=`<div class="roof"><div class="top"></div></div>
+    <div class="rooftop">${gears}</div>${cols}
     <div class="mast"></div><div class="sign"><span>FBA TREND RADAR</span></div>
     <div class="shaft"><div class="glassf"></div><div class="car"></div></div>
     <div class="ground"><i></i></div>`;
@@ -692,6 +749,55 @@ async function tick(){
  }catch(e){}
 }
 tick();setInterval(tick,8000);
+
+/* ── カメラ操作（ドラッグ回転 / ホイールズーム / プリセット / 自動回転） ── */
+(()=>{
+  const root=document.documentElement, sc=document.querySelector('.scene');
+  const HOME={ry:-24,rx:8,tz:-90,tx:56};
+  let cam={...HOME}, auto=false, dir=1, drag=false, px=0, py=0;
+  const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+  function apply(){
+    root.style.setProperty('--RY',cam.ry.toFixed(2)+'deg');
+    root.style.setProperty('--RX',cam.rx.toFixed(2)+'deg');
+    root.style.setProperty('--TZ',cam.tz.toFixed(0)+'px');
+    root.style.setProperty('--TX',cam.tx.toFixed(0)+'px');
+    document.body.classList.toggle('topview',cam.rx>20);
+  }
+  sc.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.cam'))return;
+    drag=true;px=e.clientX;py=e.clientY;sc.classList.add('grabbing');
+    try{sc.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  sc.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    cam.ry=clamp(cam.ry+(e.clientX-px)*0.35,-88,88);
+    cam.rx=clamp(cam.rx-(e.clientY-py)*0.25,-20,60);
+    px=e.clientX;py=e.clientY;apply();
+  });
+  const stop=()=>{drag=false;sc.classList.remove('grabbing')};
+  sc.addEventListener('pointerup',stop); sc.addEventListener('pointercancel',stop);
+  sc.addEventListener('wheel',e=>{
+    e.preventDefault();
+    cam.tz=clamp(cam.tz-e.deltaY*0.7,-780,340);apply();
+  },{passive:false});
+  document.querySelectorAll('.cam button[data-ry]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      auto=false;autoBtn.classList.remove('on');
+      cam.ry=+b.dataset.ry;cam.rx=+b.dataset.rx;apply();
+    });
+  });
+  resetBtn.addEventListener('click',()=>{auto=false;autoBtn.classList.remove('on');cam={...HOME};apply()});
+  autoBtn.addEventListener('click',()=>{auto=!auto;autoBtn.classList.toggle('on',auto)});
+  (function loop(){
+    if(auto&&!drag){
+      cam.ry+=0.14*dir;
+      if(cam.ry>34||cam.ry<-72)dir*=-1;
+      apply();
+    }
+    requestAnimationFrame(loop);
+  })();
+  apply();
+})();
 </script>
 </body></html>"""
 
