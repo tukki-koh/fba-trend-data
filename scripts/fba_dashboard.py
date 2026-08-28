@@ -326,24 +326,24 @@ INDEX_HTML = """<!doctype html>
 <title>FBA TREND RADAR ／ AI社屋</title>
 <style>
 :root{
- --night:#05070f;--sky1:#0a1024;--sky2:#0d1730;
- --steel:#101828;--steel2:#0b1220;--edge:#1e2c47;
- --slab:#16203a;--lit:#1b2742;--dark:#0a0f1c;
+ --night:#04060d;--sky1:#0a1024;--sky2:#0d1730;--edge:#1e2c47;
  --tx:#e6ecfa;--mut:#8497bd;--mut2:#54648a;
- --cyan:#22d3ee;--amber:#f5b642;--green:#34d399;--red:#ff5d6c;--violet:#8b7bff;}
+ --cyan:#22d3ee;--amber:#f5b642;--green:#34d399;--red:#ff5d6c;--violet:#8b7bff;
+ /* ビルの寸法（3D空間） */
+ --W:600px; --D:200px; --FH:128px; --RY:-24deg; --RX:8deg;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--night);color:var(--tx);
  font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;font-size:13px;overflow-x:hidden}
 .mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:1460px;margin:0 auto;padding:14px 16px 40px}
+.wrap{max-width:1480px;margin:0 auto;padding:14px 16px 40px}
 
-/* ── ヘッダー（HUD風） ───────────────────────── */
+/* ── ヘッダー ─────────────────────────────── */
 header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
  background:linear-gradient(180deg,#0c1424,#080d18);border:1px solid var(--edge);
  border-radius:12px;padding:10px 16px;margin-bottom:14px;position:relative;overflow:hidden}
 header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
  background:linear-gradient(90deg,transparent,var(--cyan),var(--amber),transparent);opacity:.8}
-.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px;letter-spacing:.02em}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px}
 .blogo{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-size:15px;
  background:linear-gradient(145deg,#1b2b4d,#0d1526);border:1px solid #2b4270;
  box-shadow:0 0 16px rgba(34,211,238,.35) inset}
@@ -358,165 +358,166 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.6s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
-/* ── レイアウト ─────────────────────────────── */
 .stage{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start}
 
-/* ── 夜景 ──────────────────────────────────── */
-.scene{position:relative;border:1px solid var(--edge);border-radius:14px;overflow:hidden;
- background:linear-gradient(180deg,var(--night) 0%,var(--sky1) 45%,var(--sky2) 100%);padding:0 0 0}
-.stars{position:absolute;inset:0;pointer-events:none;opacity:.75}
+/* ── 夜景 ─────────────────────────────────── */
+.scene{position:relative;border:1px solid var(--edge);border-radius:14px;overflow:hidden;min-height:1020px;
+ background:linear-gradient(180deg,var(--night) 0%,var(--sky1) 50%,var(--sky2) 100%);
+ perspective:1500px;perspective-origin:50% 42%}
+.stars{position:absolute;inset:0;pointer-events:none}
 .stars i{position:absolute;width:2px;height:2px;background:#cfe0ff;border-radius:50%;animation:tw 3.6s infinite}
 @keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
-.skyline{position:absolute;left:0;right:0;bottom:0;height:180px;opacity:.5;pointer-events:none}
+.skyline{position:absolute;left:0;right:0;bottom:0;height:200px;opacity:.45;pointer-events:none}
 
-/* ── ビル ──────────────────────────────────── */
-/* 右に46pxの側面が生えるので、その半分だけ左へずらして全体を中央に見せる */
-.tower{position:relative;width:min(100% - 80px,720px);margin:26px auto 0;transform:translateX(-23px)}
-/* 屋上 */
-.roof:after{content:"";position:absolute;left:100%;top:0;height:100%;width:46px;
- background:linear-gradient(100deg,#1d2c4a,#0b1220);border-right:1px solid var(--edge);
- border-top-right-radius:8px;clip-path:polygon(0 0,100% 13px,100% 100%,0 calc(100% - 13px))}
-.roof{position:relative;margin:0 26px 0 26px;height:64px;
- background:linear-gradient(180deg,#16223c,#0e1728);border:1px solid var(--edge);
- border-bottom:none;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center}
-.sign{font-weight:900;letter-spacing:.16em;font-size:15px;color:#bff4ff;
- text-shadow:0 0 8px rgba(34,211,238,.9),0 0 26px rgba(34,211,238,.55);animation:neon 4s infinite}
-@keyframes neon{0%,92%,100%{opacity:1}94%{opacity:.35}96%{opacity:1}97%{opacity:.5}}
-.mast{position:absolute;top:-26px;left:50%;width:2px;height:26px;background:#2b4270}
-.mast:after{content:"";position:absolute;top:-5px;left:-3px;width:8px;height:8px;border-radius:50%;
- background:var(--red);box-shadow:0 0 12px var(--red);animation:blink 2s infinite}
-.beam{position:absolute;top:-4px;left:50%;width:2px;height:150px;transform-origin:top center;
- background:linear-gradient(180deg,rgba(34,211,238,.5),transparent);animation:sweep 9s ease-in-out infinite;pointer-events:none}
-@keyframes sweep{0%,100%{transform:rotate(-38deg)}50%{transform:rotate(38deg)}}
-
-/* 階 */
-.floor{position:relative;display:grid;grid-template-columns:52px 1fr;
- border:1px solid var(--edge);border-top:none;background:var(--steel2)}
-/* 右側面＝奥行き。各階を同じだけ下方向にずらした平行四辺形にすると角が立体に見える */
-.floor:after{content:"";position:absolute;left:100%;top:0;height:100%;width:46px;pointer-events:none;
- background:linear-gradient(100deg,#16223a 0%,#0d1526 45%,#070c16 100%);
- border-right:1px solid var(--edge);
- clip-path:polygon(0 0,100% 13px,100% 100%,0 calc(100% - 13px))}
-.floor.lit:after{background:linear-gradient(100deg,#1e2f4d 0%,#101c31 45%,#080e1a 100%)}
-.tower .floor:last-of-type{border-radius:0 0 10px 10px}
-/* 各階のスラブ（コンクリート厚み）で立体感を出す */
-.floor .slab{position:absolute;left:0;right:0;top:0;height:6px;z-index:3;
- background:linear-gradient(180deg,#26375c 0%,#16203a 45%,#0a0f1c 100%)}
-/* 階数 */
-.fno{display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;
- font-family:"SF Mono",ui-monospace,Menlo,monospace;
- color:var(--mut2);background:linear-gradient(180deg,#0d1424,#080d18);border-right:1px solid var(--edge);
- letter-spacing:.04em}
-.floor.lit .fno{color:var(--cyan);text-shadow:0 0 12px rgba(34,211,238,.7)}
-.floor.rest .fno{color:var(--violet)}
-/* 室内 */
-.room{position:relative;height:142px;overflow:hidden;background:var(--dark)}
-.floor.lit .room{background:radial-gradient(120% 100% at 50% 0%,#22314f 0%,#131e35 55%,#0b1120 100%);
- box-shadow:0 0 34px rgba(56,150,220,.18) inset}
-.floor.lit{box-shadow:0 0 26px rgba(40,120,200,.13)}
-.floor.rest .room{background:radial-gradient(120% 100% at 50% 0%,#231b3d 0%,#151129 60%,#0b0918 100%)}
+/* ── 3D空間 ───────────────────────────────── */
+/* rotateYで見かけが左に寄るため translateX で中央へ戻す */
+.world{position:relative;width:var(--W);height:calc(6 * var(--FH));
+ margin:150px auto 0;transform-style:preserve-3d;
+ transform:translate3d(56px,0,-90px) rotateX(var(--RX)) rotateY(var(--RY))}
+/* 各階＝奥行きのある箱（正面は開口） */
+.fl{position:absolute;left:0;top:calc(var(--k) * var(--FH));width:var(--W);height:var(--FH);
+ transform-style:preserve-3d}
+.f{position:absolute;left:0;top:0}
+.back{width:var(--W);height:var(--FH);transform:translateZ(calc(-1 * var(--D)));
+ background:linear-gradient(180deg,#0e1728,#080e1a);border:1px solid #16233c}
+.lft,.rgt{width:var(--D);height:var(--FH);transform-origin:0 0;transform:rotateY(90deg);
+ background:linear-gradient(90deg,#0c1424,#060b15)}
+.rgt{left:var(--W)}
+.deck{width:var(--W);height:var(--D);top:var(--FH);transform-origin:0 0;transform:rotateX(-90deg);
+ background:linear-gradient(180deg,#0b1220,#131e33)}
+.ceilf{width:var(--W);height:var(--D);top:0;transform-origin:0 0;transform:rotateX(-90deg);
+ background:linear-gradient(180deg,#0a101d,#0d1524)}
+/* 点灯階 */
+.fl.lit .back{background:linear-gradient(180deg,#1b2b49,#101a2e);box-shadow:0 0 40px rgba(60,150,220,.22) inset}
+.fl.lit .lft,.fl.lit .rgt{background:linear-gradient(90deg,#16243d,#0b1220)}
+.fl.lit .deck{background:linear-gradient(180deg,#16243d,#1e2f4d)}
+.fl.lit .ceilf{background:linear-gradient(180deg,#0f1a2c,#16243d)}
+.fl.rest .back{background:linear-gradient(180deg,#241b3d,#150f28)}
+.fl.rest .deck{background:linear-gradient(180deg,#171029,#241b3d)}
+/* スラブ（床の厚み） */
+.slab{position:absolute;left:-6px;top:calc(var(--FH) - 5px);width:calc(var(--W) + 12px);height:10px;
+ transform:translateZ(4px);background:linear-gradient(180deg,#31456e,#0b1120);border-radius:2px}
 /* 奥の窓 */
-.win{position:absolute;top:16px;left:0;right:0;height:52px;display:flex;gap:10px;padding:0 18px;opacity:.5}
-.win span{flex:1;border-radius:2px;background:#0d1526;border:1px solid #1b2b47}
-.floor.lit .win span{background:linear-gradient(180deg,#2b4570,#16233d);box-shadow:0 0 12px rgba(34,211,238,.18) inset}
-/* 床面（奥行き） */
-.ground{position:absolute;left:0;right:0;bottom:0;height:44px;
- background:linear-gradient(180deg,#16203a,#0c1322);
- clip-path:polygon(4% 0,96% 0,100% 100%,0 100%);border-top:1px solid #243455}
-.floor.lit .ground{background:linear-gradient(180deg,#22314f,#101a2e)}
-/* 天井の帯照明（点灯階のみ光る） */
-.ceil{position:absolute;top:8px;left:0;right:0;height:3px;display:flex;gap:14%;justify-content:center;z-index:2}
-.ceil i{width:14%;height:3px;border-radius:2px;background:#16223a}
-.floor.lit .ceil i{background:#cfefff;box-shadow:0 0 14px rgba(180,235,255,.75),0 8px 34px rgba(120,200,255,.28)}
-/* 室内のガラス反射 */
-.glass{position:absolute;inset:0;z-index:7;pointer-events:none;
- background:linear-gradient(105deg,rgba(255,255,255,.055) 0 18%,transparent 18% 52%,rgba(255,255,255,.03) 52% 60%,transparent 60%)}
-/* 備品 */
-.prop{position:absolute;bottom:36px;z-index:4}
-.desk{width:54px;height:9px;border-radius:2px;background:linear-gradient(180deg,#4a3b2a,#2a2016);
- box-shadow:0 7px 12px rgba(0,0,0,.55)}
-.desk:after{content:"";position:absolute;bottom:-7px;left:6px;width:42px;height:7px;
- background:linear-gradient(180deg,#241b12,#171008)}
-.desk:before{content:"";position:absolute;top:-14px;left:17px;width:21px;height:14px;border-radius:2px;
+.wins{position:absolute;left:0;top:0;width:var(--W);height:var(--FH);
+ transform:translateZ(calc(-1 * var(--D) + 1px));display:flex;gap:12px;padding:22px 26px 46px}
+.wins i{flex:1;border-radius:2px;background:#0b1424;border:1px solid #1a2a45}
+.fl.lit .wins i{background:linear-gradient(180deg,#3a5c8e,#1a2b47);
+ box-shadow:0 0 16px rgba(120,190,255,.35)}
+/* 天井照明 */
+.lamp{position:absolute;width:150px;height:26px;top:0;transform-origin:0 0;
+ transform:translate3d(var(--x),6px,0) rotateX(-90deg);border-radius:3px;background:#111c30}
+.fl.lit .lamp{background:#dff2ff;box-shadow:0 0 26px rgba(190,235,255,.85),0 0 60px rgba(120,200,255,.35)}
+
+/* ── 机（3Dの箱） ─────────────────────────── */
+.dsk{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d;
+ transform:translate3d(var(--x),0,var(--z))}
+.dsk .dtop{position:absolute;left:-38px;top:0;width:76px;height:42px;transform-origin:0 0;
+ transform:translateY(-30px) rotateX(-90deg);background:linear-gradient(180deg,#5a4630,#33261a);border-radius:2px}
+.dsk .dfr{position:absolute;left:-38px;top:-30px;width:76px;height:30px;
+ background:linear-gradient(180deg,#3a2c1d,#1d1610)}
+.dsk .mon{position:absolute;left:-15px;bottom:30px;width:30px;height:20px;border-radius:2px;
+ transform-origin:bottom center;transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)));
  background:#0d1526;border:1px solid #22344f}
-.floor.lit .desk:before{background:linear-gradient(180deg,#2a6f88,#0e2b3a);border-color:#3d7f9b;
- box-shadow:0 0 12px rgba(34,211,238,.6);animation:mon 2.2s steps(3,end) infinite}
-@keyframes mon{0%{opacity:.65}50%{opacity:1}100%{opacity:.8}}
-.plant{width:13px;height:22px;border-radius:50% 50% 3px 3px;background:linear-gradient(180deg,#2b5a41,#16301f);
- box-shadow:0 5px 9px rgba(0,0,0,.55)}
-/* 部署プレート */
-.plate{position:absolute;top:9px;left:16px;display:flex;align-items:center;gap:9px;z-index:4}
-.pname{font-weight:800;font-size:12.5px;letter-spacing:.01em}
-.pcnt{font-size:10px;color:var(--mut);border:1px solid var(--edge);border-radius:4px;padding:1px 7px;
- background:rgba(6,10,20,.6)}
-.floor.lit .pcnt{color:#9be7f5;border-color:rgba(34,211,238,.4)}
-.proles{position:absolute;top:8px;right:48px;font-size:9px;font-weight:800;color:#6d7fa3;z-index:9;
- background:rgba(6,10,20,.72);border:1px solid var(--edge);border-radius:4px;padding:2px 8px;
- letter-spacing:.12em;display:flex;align-items:center;gap:6px;
- font-family:"SF Mono",ui-monospace,Menlo,monospace}
-.proles b{width:6px;height:6px;border-radius:50%;background:#3a4a6b;display:inline-block}
-.floor.lit .proles{color:#9be7f5;border-color:rgba(34,211,238,.35)}
-.floor.lit .proles b{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.8s infinite}
+.fl.lit .dsk .mon{background:linear-gradient(180deg,#2f7d99,#0e2b3a);border-color:#4890ad;
+ box-shadow:0 0 14px rgba(34,211,238,.6);animation:mon 2.4s steps(3,end) infinite}
+@keyframes mon{0%{opacity:.7}50%{opacity:1}100%{opacity:.82}}
+.plt{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d;
+ transform:translate3d(var(--x),0,var(--z))}
+.plt i{position:absolute;left:-9px;bottom:0;width:18px;height:30px;
+ transform-origin:bottom center;transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)));
+ border-radius:50% 50% 3px 3px;background:linear-gradient(180deg,#2f6647,#153021)}
 
-/* ── 社員 ─────────────────────────────────── */
-.per{position:absolute;bottom:var(--row,30px);width:30px;z-index:5;cursor:default}
-.per svg{width:100%;height:auto;display:block;image-rendering:pixelated;shape-rendering:crispEdges;
- filter:drop-shadow(0 3px 5px rgba(0,0,0,.6))}
-/* 歩く */
-.per.walk{animation:stroll var(--dur,16s) ease-in-out var(--delay,0s) infinite}
-@keyframes stroll{
- 0%,5%   {left:5%;transform:scaleX(1)}
- 26%,36% {left:38%;transform:scaleX(1)}
- 58%,68% {left:70%;transform:scaleX(1)}
- 70%     {left:70%;transform:scaleX(-1)}
- 96%,100%{left:5%;transform:scaleX(-1)}}
-.per.walk .legL{animation:stepA .46s steps(2,end) infinite}
-.per.walk .legR{animation:stepB .46s steps(2,end) infinite}
-.per.walk .armL{animation:stepB .46s steps(2,end) infinite}
-.per.walk .armR{animation:stepA .46s steps(2,end) infinite}
-@keyframes stepA{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
-@keyframes stepB{0%,100%{transform:translateY(-1.4px)}50%{transform:translateY(0)}}
-.per .legL,.per .legR,.per .armL,.per .armR{transform-box:fill-box;transform-origin:top center}
-/* 休憩 */
-.per.rest{opacity:.6}
-.per.rest svg{animation:doze 3.4s ease-in-out infinite}
+/* ── 社員（3D空間を歩くビルボード） ───────── */
+.pp{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d}
+.pp.walk{animation:walk3d var(--dur,18s) ease-in-out var(--delay,0s) infinite}
+@keyframes walk3d{
+ 0%,7%    {transform:translate3d(calc(70px + var(--xo,0px)),0,calc(-30px + var(--zo,0px)))}
+ 27%,37%  {transform:translate3d(calc(230px + var(--xo,0px)),0,calc(-115px + var(--zo,0px)))}
+ 57%,67%  {transform:translate3d(calc(430px + var(--xo,0px)),0,calc(-55px + var(--zo,0px)))}
+ 88%,100% {transform:translate3d(calc(70px + var(--xo,0px)),0,calc(-30px + var(--zo,0px)))}}
+.pp .bb{position:absolute;left:-17px;bottom:0;width:34px;
+ transform-origin:bottom center;
+ transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)))}
+.pp svg{width:100%;height:auto;display:block;image-rendering:pixelated;shape-rendering:crispEdges;
+ filter:drop-shadow(0 4px 6px rgba(0,0,0,.7))}
+.pp.walk .legL,.pp.walk .armR{animation:stepA .46s steps(2,end) infinite}
+.pp.walk .legR,.pp.walk .armL{animation:stepB .46s steps(2,end) infinite}
+@keyframes stepA{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes stepB{0%,100%{transform:translateY(-1.5px)}50%{transform:translateY(0)}}
+.pp .legL,.pp .legR,.pp .armL,.pp .armR{transform-box:fill-box;transform-origin:top center}
+/* 影 */
+.pp .shadow{position:absolute;left:-14px;bottom:-3px;width:28px;height:10px;border-radius:50%;
+ transform-origin:0 0;transform:rotateX(-90deg);background:radial-gradient(rgba(0,0,0,.55),transparent 70%)}
+.pp.rest{opacity:.62}
+.pp.rest svg{animation:doze 3.4s ease-in-out infinite}
 @keyframes doze{0%,100%{transform:translateY(0)}50%{transform:translateY(1.5px)}}
-.zz{position:absolute;top:-10px;left:60%;font-size:10px;color:#a99bd6;animation:zz 2.8s ease-out infinite}
-@keyframes zz{0%{opacity:0;transform:translate(0,4px)}35%{opacity:.95}100%{opacity:0;transform:translate(8px,-10px)}}
-/* エラー */
-.per.err svg{animation:panic .3s steps(2,end) infinite}
+.pp .zz{position:absolute;left:14px;bottom:34px;font-size:11px;color:#b6a8e6;animation:zz 2.8s ease-out infinite}
+@keyframes zz{0%{opacity:0;transform:translate(0,4px)}35%{opacity:.95}100%{opacity:0;transform:translate(9px,-12px)}}
+.pp.err svg{animation:panic .3s steps(2,end) infinite}
 @keyframes panic{0%,100%{transform:translateX(-1px)}50%{transform:translateX(1px)}}
-/* 名札 */
-.per .tagn{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;
- font-size:8.5px;color:#a9bde0;background:rgba(5,8,16,.75);border:1px solid var(--edge);
- padding:0 4px;border-radius:3px}
-.per.walk .tagn{transform:translateX(-50%) scaleX(1)}
-/* 吹き出し */
-.per .bub{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:16px;
- white-space:nowrap;background:#dfe9ff;color:#0b1424;font-size:9px;font-weight:700;
- padding:2px 7px;border-radius:4px;animation:pop 9s ease-in-out infinite}
-@keyframes pop{0%,80%,100%{opacity:0}84%,94%{opacity:1}}
+.pp .nm{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;white-space:nowrap;
+ font-size:8.5px;color:#b3c7e8;background:rgba(4,7,14,.8);border:1px solid var(--edge);
+ padding:0 5px;border-radius:3px}
+.pp .bub{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;
+ white-space:nowrap;background:#e2ecff;color:#0b1424;font-size:9px;font-weight:700;
+ padding:2px 7px;border-radius:4px;animation:pop 10s ease-in-out infinite}
+@keyframes pop{0%,82%,100%{opacity:0}86%,95%{opacity:1}}
 
-/* ── エレベーター ─────────────────────────── */
-.lift{position:absolute;top:64px;bottom:16px;right:16px;width:26px;background:#060a14;
- border:1px solid #24395e;border-radius:2px;z-index:8;overflow:hidden;
- background-image:repeating-linear-gradient(180deg,transparent 0 136px,#1b2c49 136px 142px)}
-.car{position:absolute;left:3px;width:18px;height:30px;border-radius:2px;
- background:linear-gradient(180deg,#3a6f96,#12233a);border:1px solid #4d86ad;
- box-shadow:0 0 16px rgba(34,211,238,.65);animation:ride 14s ease-in-out infinite}
-.car:after{content:"";position:absolute;top:50%;left:1px;right:1px;height:1px;background:rgba(190,240,255,.55)}
-@keyframes ride{0%,100%{top:4%}25%{top:62%}50%{top:20%}75%{top:84%}}
+/* ── 看板・階数（正面を向くビルボード） ───── */
+.bbx{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d;
+ transform:translate3d(var(--x),var(--y,0px),var(--z))}
+.bbx>span{position:absolute;bottom:0;left:0;white-space:nowrap;transform-origin:bottom left;
+ transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)))}
+.dir{display:flex;align-items:center;gap:9px}
+.plate{display:flex;align-items:center;gap:8px;background:rgba(6,11,22,.94);border:1px solid #2b4066;
+ border-radius:5px;padding:4px 10px;font-weight:800;font-size:12px;
+ box-shadow:0 3px 14px rgba(0,0,0,.6)}
+.fl.lit .plate{border-color:rgba(34,211,238,.4);box-shadow:0 0 16px rgba(34,211,238,.18)}
+.plate b{font-size:10px;font-weight:700;color:var(--mut);border-left:1px solid var(--edge);padding-left:8px}
+.fl.lit .plate b{color:#9be7f5}
+.fnum{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-weight:900;font-size:19px;color:#42557d;
+ letter-spacing:.04em}
+.fl.lit .fnum{color:var(--cyan);text-shadow:0 0 14px rgba(34,211,238,.8)}
+.fl.rest .fnum{color:var(--violet)}
+.led{display:inline-flex;align-items:center;gap:5px;font-family:"SF Mono",ui-monospace,Menlo,monospace;
+ font-size:8.5px;font-weight:800;letter-spacing:.1em;color:#6d7fa3;
+ border-left:1px solid var(--edge);padding-left:8px}
+.led i{width:6px;height:6px;border-radius:50%;background:#3a4a6b}
+.fl.lit .led{color:#9be7f5;border-color:rgba(34,211,238,.35)}
+.fl.lit .led i{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.8s infinite}
 
-/* ── 地上 ─────────────────────────────────── */
-.base:after{content:"";position:absolute;left:100%;top:0;height:100%;width:46px;
- background:linear-gradient(100deg,#14213a,#070c16);border-right:1px solid var(--edge);
- clip-path:polygon(0 0,100% 13px,100% 100%,0 100%)}
-.base{position:relative;margin:0 10px;height:16px;background:linear-gradient(180deg,#1a2740,#0a1120);
- border:1px solid var(--edge);border-top:none;border-radius:0 0 12px 12px}
-.streetline{height:44px;background:linear-gradient(180deg,#080d18,#05070f);
- border-top:1px solid #12203a;position:relative}
-.streetline:after{content:"";position:absolute;left:0;right:0;top:20px;height:1px;
- background:repeating-linear-gradient(90deg,#1d2f4d 0 22px,transparent 22px 44px)}
+/* ── 屋上・エレベーター・地面 ─────────────── */
+.roof{position:absolute;left:-8px;top:-14px;width:calc(var(--W) + 16px);height:14px;
+ transform-style:preserve-3d;background:linear-gradient(180deg,#2b3f66,#111a2c)}
+.roof .top{position:absolute;left:0;top:0;width:100%;height:calc(var(--D) + 16px);
+ transform-origin:0 0;transform:rotateX(-90deg);background:linear-gradient(180deg,#1a2740,#0d1524)}
+.sign{position:absolute;left:0;top:-52px;width:0;height:0;transform-style:preserve-3d;
+ transform:translate3d(calc(var(--W) / 2),0,-20px)}
+.sign>span{position:absolute;bottom:0;left:0;transform:translateX(-50%) rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)));
+ font-weight:900;letter-spacing:.16em;font-size:17px;white-space:nowrap;color:#c9f6ff;
+ text-shadow:0 0 10px rgba(34,211,238,.95),0 0 30px rgba(34,211,238,.6);animation:neon 5s infinite}
+@keyframes neon{0%,92%,100%{opacity:1}94%{opacity:.3}96%{opacity:1}97%{opacity:.55}}
+.mast{position:absolute;left:calc(var(--W) / 2);top:-92px;width:2px;height:40px;background:#2b4270;
+ transform:translateZ(-20px)}
+.mast:after{content:"";position:absolute;top:-6px;left:-4px;width:9px;height:9px;border-radius:50%;
+ background:var(--red);box-shadow:0 0 14px var(--red);animation:blink 2s infinite}
+/* rotateY(-24deg)では左側が手前に来るため、左端に置くと視認しやすい */
+.shaft{position:absolute;left:8px;top:0;width:42px;height:calc(6 * var(--FH));
+ transform-style:preserve-3d;transform:translateZ(-56px)}
+.shaft .glassf{position:absolute;inset:0;border:1px solid #3a5c8a;border-radius:2px;
+ background:linear-gradient(180deg,rgba(24,44,74,.92),rgba(10,18,32,.92));
+ background-image:repeating-linear-gradient(180deg,transparent 0 120px,#42679b 120px 128px);
+ box-shadow:0 0 22px rgba(34,211,238,.22) inset}
+.car{position:absolute;left:5px;width:32px;height:40px;border-radius:2px;
+ background:linear-gradient(180deg,#4a86ad,#14263e);border:1px solid #5f9ec4;
+ box-shadow:0 0 20px rgba(34,211,238,.7);animation:ride 15s ease-in-out infinite}
+.car:after{content:"";position:absolute;top:50%;left:2px;right:2px;height:1px;background:rgba(200,245,255,.6)}
+@keyframes ride{0%,100%{top:6px}25%{top:480px}50%{top:150px}75%{top:640px}}
+.ground{position:absolute;left:calc(var(--W) / 2);top:calc(6 * var(--FH));width:0;height:0;transform-style:preserve-3d}
+.ground>i{position:absolute;left:-700px;top:0;width:1400px;height:900px;transform-origin:0 0;
+ transform:rotateX(-90deg);background:
+ radial-gradient(ellipse 420px 260px at 700px 120px,rgba(70,150,220,.16),transparent 70%),
+ linear-gradient(180deg,#080e1a,#05070f)}
 
 /* ── サイドパネル ─────────────────────────── */
 .side{display:flex;flex-direction:column;gap:12px;position:sticky;top:14px}
@@ -537,8 +538,9 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 .tg.a{background:rgba(245,182,66,.13);color:#ffd899;border-color:rgba(245,182,66,.32)}
 .ttx{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tago{font-size:9.5px;color:var(--mut2);flex:0 0 auto}
-.foot{margin-top:14px;text-align:center;font-size:10.5px;color:var(--mut2);letter-spacing:.04em}
-@media(max-width:1080px){.stage{grid-template-columns:1fr}.side{position:static}}
+.foot{margin-top:14px;text-align:center;font-size:10.5px;color:var(--mut2)}
+@media(max-width:1180px){.stage{grid-template-columns:1fr}.side{position:static}
+ :root{--W:460px;--D:150px;--FH:112px}}
 </style></head>
 <body><div class="wrap">
 
@@ -557,24 +559,14 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 <div class="stage">
   <div class="scene">
     <div class="stars" id="stars"></div>
-    <svg class="skyline" viewBox="0 0 1200 180" preserveAspectRatio="none" aria-hidden="true">
-      <path fill="#0a1122" d="M0,180 L0,120 40,120 40,88 92,88 92,132 150,132 150,70 205,70 205,140
-        260,140 260,100 320,100 320,60 372,60 372,146 430,146 430,110 495,110 495,150 560,150 560,92
-        615,92 615,138 680,138 680,66 735,66 735,142 800,142 800,104 860,104 860,150 920,150 920,84
-        975,84 975,136 1040,136 1040,112 1100,112 1100,148 1160,148 1160,96 1200,96 1200,180 Z"/>
-      <g fill="#1b2c4d" opacity=".85" id="cityWin"></g>
+    <svg class="skyline" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+      <path fill="#080e1c" d="M0,200 L0,130 40,130 40,96 92,96 92,142 150,142 150,78 205,78 205,150
+        260,150 260,110 320,110 320,68 372,68 372,156 430,156 430,120 495,120 495,160 560,160 560,100
+        615,100 615,148 680,148 680,74 735,74 735,152 800,152 800,114 860,114 860,160 920,160 920,92
+        975,92 975,146 1040,146 1040,122 1100,122 1100,158 1160,158 1160,104 1200,104 1200,200 Z"/>
+      <g fill="#1a2b4a" opacity=".8" id="cityWin"></g>
     </svg>
-
-    <div class="tower">
-      <div class="roof">
-        <span class="mast"></span><span class="beam"></span>
-        <span class="sign">FBA TREND RADAR</span>
-      </div>
-      <div class="lift"><span class="car"></span></div>
-      <div id="floors"></div>
-      <div class="base"></div>
-    </div>
-    <div class="streetline"></div>
+    <div class="world" id="world"></div>
   </div>
 
   <div class="side">
@@ -598,43 +590,57 @@ const LINES=['データ確認中','順調です','あと少し','数字いいね
 function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
 const short=n=>n.replace(/（.*?）/g,'').replace(/担当$/,'');
 
-/* 星と街の灯り */
-(()=>{let s='';for(let i=0;i<70;i++){s+=`<i style="left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*46).toFixed(1)}%;animation-delay:${(Math.random()*3.6).toFixed(1)}s"></i>`}
+(()=>{let s='';for(let i=0;i<80;i++){s+=`<i style="left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*44).toFixed(1)}%;animation-delay:${(Math.random()*3.6).toFixed(1)}s"></i>`}
  document.getElementById('stars').innerHTML=s;
- let w='';for(let i=0;i<90;i++){w+=`<rect x="${(Math.random()*1190).toFixed(0)}" y="${(60+Math.random()*110).toFixed(0)}" width="3" height="4"/>`}
+ let w='';for(let i=0;i<100;i++){w+=`<rect x="${(Math.random()*1190).toFixed(0)}" y="${(70+Math.random()*125).toFixed(0)}" width="3" height="4"/>`}
  document.getElementById('cityWin').innerHTML=w;})();
 
-/* ピクセル社員 */
-function person(name,mood){
+function person(name,rest){
   const c=PAL[hash(name)%PAL.length];
-  const closed=mood==='rest';
   return `<svg viewBox="0 0 16 23">
     <rect x="4" y="1" width="8" height="7" rx="1" fill="${c}"/>
-    <rect x="6" y="4" width="1.6" height="${closed?0.8:2}" fill="#05070f"/>
-    <rect x="8.6" y="4" width="1.6" height="${closed?0.8:2}" fill="#05070f"/>
+    <rect x="6" y="4" width="1.6" height="${rest?0.8:2}" fill="#04060d"/>
+    <rect x="8.6" y="4" width="1.6" height="${rest?0.8:2}" fill="#04060d"/>
     <rect x="4" y="8" width="8" height="8" fill="${c}"/>
-    <rect x="5.5" y="9" width="5" height="3" fill="rgba(255,255,255,.18)"/>
+    <rect x="5.5" y="9" width="5" height="3" fill="rgba(255,255,255,.2)"/>
     <rect class="armL" x="2" y="9" width="2" height="6" fill="${c}"/>
     <rect class="armR" x="12" y="9" width="2" height="6" fill="${c}"/>
     <rect class="legL" x="5" y="16" width="2.6" height="6" fill="#26314c"/>
     <rect class="legR" x="8.4" y="16" width="2.6" height="6" fill="#26314c"/>
   </svg>`;
 }
-function staff(m,kind,i){
-  const dur=(13+hash(m.name)%9)+'s', delay=(-(hash(m.name+'d')%12))+'s';
-  if(kind==='walk'){
-    // 前後2列に振り分けて重なりを避ける
-    const row=(i%2)?46:28;
-    return `<div class="per walk ${m.state==='error'?'err':''}" title="${m.name}｜${LBL[m.state]||''}｜次回 ${m.next}"
-      style="--dur:${dur};--delay:${delay};--row:${row}px;z-index:${i%2?4:6}">
-      <div class="bub">${LINES[hash(m.name)%LINES.length]}</div>
-      ${person(m.name,'act')}<div class="tagn">${short(m.name)}</div></div>`;
-  }
-  return `<div class="per rest" title="${m.name}｜${LBL[m.state]||''}｜次回 ${m.next}"
-    style="left:${8+i*17}%"><div class="zz">z</div>${person(m.name,'rest')}
-    <div class="tagn">${short(m.name)}</div></div>`;
+function staffWalk(m){
+  const dur=(15+hash(m.name)%10)+'s', delay=(-(hash(m.name+'d')%14))+'s';
+  const zo=[0,-42,38,-20][hash(m.name+'z')%4], xo=[0,-38,42,18][hash(m.name+'x')%4];
+  return `<div class="pp walk ${m.state==='error'?'err':''}" style="--dur:${dur};--delay:${delay};--zo:${zo}px;--xo:${xo}px"
+     title="${m.name}｜${LBL[m.state]||''}｜次回 ${m.next}">
+     <div class="shadow"></div>
+     <div class="bb"><div class="bub">${LINES[hash(m.name)%LINES.length]}</div>
+       ${person(m.name,false)}<div class="nm">${short(m.name)}</div></div></div>`;
+}
+function staffRest(m,i){
+  return `<div class="pp rest" style="transform:translate3d(${90+i*120}px,0,-70px)"
+     title="${m.name}｜${LBL[m.state]||''}｜次回 ${m.next}">
+     <div class="shadow"></div>
+     <div class="bb"><div class="zz">z</div>${person(m.name,true)}
+       <div class="nm">${short(m.name)}</div></div></div>`;
 }
 const isActive=s=>s==='ok'||s==='run'||s==='error';
+
+function floorHTML(d,k,label,cls,ledTxt,inner){
+  return `<div class="fl ${cls}" style="--k:${k}">
+    <div class="f back"></div><div class="f lft"></div><div class="f rgt"></div>
+    <div class="f deck"></div><div class="f ceilf"></div>
+    <div class="wins">${'<i></i>'.repeat(6)}</div>
+    <div class="lamp" style="--x:110px"></div><div class="lamp" style="--x:340px"></div>
+    <div class="slab"></div>
+    <div class="bbx" style="--x:-252px;--y:-58px;--z:64px"><span class="dir">
+      <b class="fnum">${label}</b>
+      <span class="plate">${d.icon} ${d.dept}<b>${d.cnt}</b><span class="led"><i></i>${ledTxt}</span></span>
+    </span></div>
+    <div class="plt" style="--x:530px;--z:-150px"><i></i></div>
+    ${inner}</div>`;
+}
 
 async function tick(){
  try{
@@ -645,45 +651,29 @@ async function tick(){
 
   const resting=[];
   const depts=(s.depts||[]).map((d,i)=>({...d,no:i+1}));
-  const html=depts.slice().reverse().map(d=>{
+  // 上階ほど後ろの部署（5F=最後の部署）
+  const order=depts.slice().reverse();
+  let html=`<div class="roof"><div class="top"></div></div>
+    <div class="mast"></div><div class="sign"><span>FBA TREND RADAR</span></div>
+    <div class="shaft"><div class="glassf"></div><div class="car"></div></div>
+    <div class="ground"><i></i></div>`;
+
+  order.forEach((d,k)=>{
     const on=d.members.filter(m=>isActive(m.state));
     d.members.filter(m=>!isActive(m.state)).forEach(m=>resting.push(m));
-    const props=`<div class="prop desk" style="left:14%"></div>
-      <div class="prop desk" style="left:46%"></div>
-      <div class="prop desk" style="left:74%"></div>
-      <div class="prop plant" style="left:92%"></div>`;
-    return `<div class="floor ${on.length?'lit':''}">
-      <div class="slab"></div>
-      <div class="fno">${d.no}F</div>
-      <div class="room">
-        <div class="win">${'<span></span>'.repeat(7)}</div>
-        <div class="ceil">${'<i></i>'.repeat(3)}</div>
-        <div class="ground"></div>
-        ${props}
-        <div class="glass"></div>
-        <div class="plate"><span class="pname">${d.icon} ${d.dept}</span>
-          <span class="pcnt">稼働 ${on.length}/${d.members.length}</span></div>
-        <div class="proles"><b></b>${on.length?'ACTIVE':'IDLE'}</div>
-        ${on.map((m,i)=>staff(m,'walk',i)).join('')}
-      </div></div>`;
-  }).join('');
+    const desks=`<div class="dsk" style="--x:130px;--z:-120px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>
+      <div class="dsk" style="--x:300px;--z:-150px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>
+      <div class="dsk" style="--x:450px;--z:-110px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>`;
+    html+=floorHTML({...d,cnt:`稼働 ${on.length}/${d.members.length}`}, k, d.no+'F',
+      on.length?'lit':'', on.length?'ACTIVE':'IDLE',
+      desks+on.map(staffWalk).join(''));
+  });
 
-  const b1=`<div class="floor rest">
-      <div class="slab"></div>
-      <div class="fno">B1</div>
-      <div class="room">
-        <div class="win">${'<span></span>'.repeat(7)}</div>
-        <div class="ceil">${'<i></i>'.repeat(3)}</div>
-        <div class="ground"></div>
-        <div class="prop desk" style="left:60%"></div>
-        <div class="prop plant" style="left:90%"></div>
-        <div class="glass"></div>
-        <div class="plate"><span class="pname">☕ 休憩室</span>
-          <span class="pcnt">${resting.length}名 休憩中</span></div>
-        <div class="proles"><b></b>STANDBY</div>
-        ${resting.map((m,i)=>staff(m,'rest',i)).join('')||''}
-      </div></div>`;
-  document.getElementById('floors').innerHTML=html+b1;
+  html+=floorHTML({icon:'☕',dept:'休憩室',cnt:`${resting.length}名 休憩中`}, order.length, 'B1', 'rest','STANDBY',
+    `<div class="dsk" style="--x:420px;--z:-140px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>`
+    + resting.map(staffRest).join(''));
+
+  document.getElementById('world').innerHTML=html;
 
   document.getElementById('kpis').innerHTML=[
    ['有効会員',(k.active||0)+'名'],['トライアル',(k.trial||0)+'名'],
