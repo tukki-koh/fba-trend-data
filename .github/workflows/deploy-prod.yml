@@ -1,0 +1,26 @@
+name: Vercel本番デプロイ（手動）
+
+# ローカルの Vercel CLI トークンが切れても本番反映できるようにする手動デプロイ経路。
+# 週次マーケ社員ワークフローと同じ VERCEL_TOKEN シークレットを使う。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: team_mhpSU8lNlVLSr82vewA67lU3
+      VERCEL_PROJECT_ID: prj_hay1PQuQJG1kLDXrZVuvXZJTh8zw
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vercel本番へデプロイ
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm i -g vercel@latest
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
