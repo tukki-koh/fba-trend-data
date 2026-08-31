@@ -6,6 +6,7 @@ import Script from "next/script";
 import FreeSampleForm from "@/components/FreeSampleForm";
 import HeroEmailCapture from "@/components/HeroEmailCapture";
 import PlanPicker from "@/components/PlanPicker";
+import StickyMobileCTA from "@/components/StickyMobileCTA";
 
 export const metadata: Metadata = {
   title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
@@ -728,6 +729,8 @@ export default function HomePage() {
           <p className="text-xs text-stone-400">© 2026 FBAトレンドレーダー</p>
         </div>
       </footer>
+
+      <StickyMobileCTA />
     </div>
   );
 }
