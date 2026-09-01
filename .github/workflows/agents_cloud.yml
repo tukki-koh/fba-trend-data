@@ -1,0 +1,116 @@
+name: AI社員（クラウド常駐）
+
+# このアプリ(Claude Code)の起動状態に関係なく、クラウドで24時間365日稼働させる。
+# コードを触るジョブは npm run build で検証し、失敗したら変更を破棄して本番に出さない。
+
+on:
+  schedule:
+    # Google広告最適化担当: 毎週水 AM9:30 JST（実処理は隔週・スクリプト側で判定）
+    - cron: "30 0 * * 3"
+    # 成長・ベンチマーク担当: 毎週土 AM10:00 JST
+    - cron: "0 1 * * 6"
+    # 月次SEO/GEO担当: 毎月5日 AM10:00 JST
+    - cron: "0 1 5 * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "手動実行する社員: ads / seo / growth"
+        required: true
+        default: "ads"
+        type: choice
+        options: [ads, seo, growth]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agents-cloud
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: team_mhpSU8lNlVLSr82vewA67lU3
+      VERCEL_PROJECT_ID: prj_hay1PQuQJG1kLDXrZVuvXZJTh8zw
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 実行する社員を決める
+        id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ inputs.mode }}"
+          else
+            case "${{ github.event.schedule }}" in
+              "30 0 * * 3")  MODE="ads" ;;
+              "0 1 * * 6")   MODE="growth" ;;
+              "0 1 5 * *")   MODE="seo" ;;
+              *)             MODE="" ;;
+            esac
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "担当: ${MODE:-なし}"
+
+      - uses: actions/setup-python@v5
+        if: steps.pick.outputs.mode != ''
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        if: steps.pick.outputs.mode != ''
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: 依存インストール
+        if: steps.pick.outputs.mode != ''
+        run: |
+          pip install anthropic
+          npm ci
+
+      - name: 社員を稼働させる
+        if: steps.pick.outputs.mode != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/cloud_agents.py "${{ steps.pick.outputs.mode }}"
+
+      - name: 変更があるか確認
+        if: steps.pick.outputs.mode != ''
+        id: diff
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"; echo "変更なし"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"; git --no-pager diff --stat
+          fi
+
+      # コードが壊れていないか本番と同じビルドで検証する
+      - name: ビルド検証
+        if: steps.diff.outputs.changed == 'true'
+        id: build
+        continue-on-error: true
+        run: npm run build
+
+      - name: ビルド失敗 → 変更を破棄
+        if: steps.diff.outputs.changed == 'true' && steps.build.outcome == 'failure'
+        run: |
+          git checkout -- .
+          echo "::error::ビルドに失敗したため変更を破棄しました（本番は無傷です）"
+          exit 1
+
+      - name: コミット＆本番反映
+        if: steps.diff.outputs.changed == 'true' && steps.build.outcome == 'success'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # 作者メールはVercelのチームメンバーにする必要がある
+          # （別メールだと TEAM_ACCESS_REQUIRED でデプロイがBLOCKされる）
+          git config user.name  "月足昂誠"
+          git config user.email "yuezuangcheng@gmail.com"
+          git add -A
+          git commit -m "AI社員(${{ steps.pick.outputs.mode }})の自動更新 $(date +%Y-%m-%d)"
+          git push
+          npm i -g vercel@latest
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
