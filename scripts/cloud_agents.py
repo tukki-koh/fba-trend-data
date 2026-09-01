@@ -56,8 +56,13 @@ def ask(prompt: str, model: str, max_tokens: int = 4000) -> str:
                 model=m, max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
             )
+            # 思考ブロック(ThinkingBlock)が先頭に来るモデルがあるため text だけを拾う
+            parts = [b.text for b in r.content if getattr(b, "type", "") == "text"]
+            out = "\n".join(parts).strip()
+            if not out:
+                raise ValueError("テキスト応答が空")
             print(f"  [model] {m}")
-            return r.content[0].text.strip()
+            return out
         except Exception as e:
             print(f"  [warn] {m} 失敗: {type(e).__name__}: {e}")
     return ""

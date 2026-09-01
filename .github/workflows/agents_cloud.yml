@@ -87,10 +87,22 @@ jobs:
           fi
 
       # コードが壊れていないか本番と同じビルドで検証する
+      # ビルドは「コードが壊れていないか」だけを見る。
+      # 実キーは不要だが、未設定だとSDKの初期化で落ちるためダミーを渡す。
       - name: ビルド検証
         if: steps.diff.outputs.changed == 'true'
         id: build
         continue-on-error: true
+        env:
+          STRIPE_SECRET_KEY: sk_test_dummy_for_build_only
+          STRIPE_WEBHOOK_SECRET: whsec_dummy
+          STRIPE_PRICE_STANDARD: price_dummy
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: dummy-service-key
+          RESEND_API_KEY: re_dummy
+          FROM_EMAIL: noreply@example.com
+          NEXT_PUBLIC_SITE_URL: https://fba-trend-data.vercel.app
         run: npm run build
 
       - name: ビルド失敗 → 変更を破棄
