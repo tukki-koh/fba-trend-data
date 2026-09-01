@@ -350,10 +350,9 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-8">
-              <Link href="/checkout?plan=standard"
+              <Link href="#free-sample"
                 className="group shrink-0 inline-flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-400 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-xl shadow-amber-900/40">
-                月額1,480円で始める
-                <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
+                <Gift size={18} /> まずは無料サンプルを受け取る（カード不要）
               </Link>
               <HeroEmailCapture />
             </div>
