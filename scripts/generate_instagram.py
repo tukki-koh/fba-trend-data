@@ -306,6 +306,38 @@ def _season_comment() -> str:
 
 
 # ── キャプション生成 ──────────────────────────────
+def _load_hashtags() -> str:
+    """SNSハッシュタグ担当（週次AI社員）が更新したファイルを読む。
+    無い・壊れている場合は既定値に自動で戻すので、投稿は必ず成立する。"""
+    default = (
+        "#Amazon物販 #FBA副業 #物販副業 #せどり女子 #副業初心者 "
+        "#仕入れリサーチ #Amazonせどり #FBAせどり #副業月収 #在宅副業 "
+        "#国内せどり #電脳せどり #物販ビジネス #Amazon #せどり"
+    )
+    path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "instagram_content", "hashtags_current.md",
+    )
+    try:
+        with open(path, encoding="utf-8") as fh:
+            tags = []
+            for ln in fh:
+                t = ln.strip().lstrip("- ").strip()
+                # 見出し（"# 今週の…"）は # の後ろに空白が入るので除外できる
+                if t.startswith("#") and not t.startswith("# "):
+                    tags += [w for w in t.split() if w.startswith("#")]
+        tags = list(dict.fromkeys(tags))  # 重複除去（順序は維持）
+        if len(tags) >= 10:
+            print(f"  [caption] ハッシュタグ担当の更新を使用（{len(tags)}個）")
+            return " ".join(tags[:15])
+        print("  [caption] タグ数が不足のため既定値を使用")
+    except FileNotFoundError:
+        print("  [caption] ハッシュタグ未生成のため既定値を使用")
+    except Exception as e:
+        print(f"  [caption] 読込エラー({e})のため既定値を使用")
+    return default
+
+
 def build_caption(trend_data: dict) -> str:
     # 注目カテゴリ（最も商品数が多い）
     top_cat = max(trend_data, key=lambda c: len(trend_data[c]), default="ペット用品")
@@ -325,11 +357,7 @@ def build_caption(trend_data: dict) -> str:
     ]
     opener = openers[pattern]
 
-    hashtags = (
-        "#Amazon物販 #FBA副業 #物販副業 #せどり女子 #副業初心者 "
-        "#仕入れリサーチ #Amazonせどり #FBAせどり #副業月収 #在宅副業 "
-        "#国内せどり #電脳せどり #物販ビジネス #Amazon #せどり"
-    )
+    hashtags = _load_hashtags()
 
     caption = f"""{opener}
 

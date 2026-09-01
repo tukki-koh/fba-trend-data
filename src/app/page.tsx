@@ -7,6 +7,10 @@ import FreeSampleForm from "@/components/FreeSampleForm";
 import HeroEmailCapture from "@/components/HeroEmailCapture";
 import PlanPicker from "@/components/PlanPicker";
 import StickyMobileCTA from "@/components/StickyMobileCTA";
+import { getDeliveryStats } from "@/lib/deliveryStats";
+
+// 配信実績（本数・連続週数）は毎週更新されるため、1時間ごとに再生成する
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "FBAトレンドレーダー｜Amazon FBA仕入れリサーチを週1回に減らすデータ配信",
@@ -275,7 +279,9 @@ const TRUST_CHIPS = [
   { icon: <Clock size={15} />, label: "解約はいつでも1クリック" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const deliveryStats = await getDeliveryStats();
+
   return (
     <div className="min-h-screen bg-[#faf9f7] text-stone-700 antialiased">
       <Script id="json-ld" type="application/ld+json"
@@ -611,8 +617,16 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
             {[
-              { num: "25本", label: "これまでの配信レポート", sub: "2026年5月27日〜現在" },
-              { num: "11週", label: "連続配信", sub: "配信の抜けはありません" },
+              {
+                num: `${deliveryStats.totalReports}本`,
+                label: "これまでの配信レポート",
+                sub: deliveryStats.firstDeliveryLabel ? `${deliveryStats.firstDeliveryLabel}〜現在` : "配信実績を集計中",
+              },
+              {
+                num: `${deliveryStats.consecutiveWeeks}週`,
+                label: "連続配信",
+                sub: "配信の抜けはありません",
+              },
               { num: "50商品", label: "毎週掲載する商品数", sub: "5カテゴリ × TOP10" },
               { num: "月曜 7:00", label: "自動配信", sub: "収集から送信まで全自動" },
             ].map((s) => (

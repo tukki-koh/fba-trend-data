@@ -3,10 +3,13 @@
 
 このアプリ（Claude Code）の起動状態に依存せず、24時間365日クラウドで動く。
 
-モード:
-  ads    … Google広告最適化担当（隔週）  marketing/google_ads_assets.md を刷新
-  seo    … 月次SEO/GEO担当             public/llms.txt 刷新 ＋ metadata を微修正
-  growth … 成長・ベンチマーク担当        世界最高水準の企業を手本にLPを1点改善
+モード（担当ファイルは重複しないよう明確に分離している）:
+  ads    … Google広告最適化担当（隔週水）  marketing/google_ads_assets.md のみ
+  seo    … 月次SEO/GEO担当（毎月5日）     public/llms.txt ＋ src/app/layout.tsx の metadata のみ
+  growth … 成長・ベンチマーク担当（毎週土） src/app/page.tsx のJSX本文のみ
+
+  ※ Instagramハッシュタグは scripts/cloud_marketing_agent.py（SNS担当・毎週水）が専任。
+     役割一覧は docs/ai_staff_roles.md を参照。
 
 安全設計:
   - コードを触るモードは「完全一致の find / replace」でのみ編集する（自由な書き換えは禁止）
@@ -164,7 +167,9 @@ def run_seo() -> None:
 ## 現在の src/app/layout.tsx（抜粋・metadata部分）
 {cur_layout[:3000]}
 
-## タスク
+## タスク（担当範囲: llms.txt と layout.tsx の metadata のみ。
+##  page.tsx のJSX本文は「成長・ベンチマーク担当」、
+##  Instagramのハッシュタグは「SNSハッシュタグ担当」の領域なので触らない）
 1. llms.txt を、ChatGPT・Perplexity・Geminiが引用しやすい形に刷新する
    （## このサービスは何か / 誰向けか / 料金 / 何が届くか / よくある質問(Q&A 5問以上)）
 2. layout.tsx の description を、検索クリック率が高まる文言に1箇所だけ改善する（130字以内）
@@ -217,6 +222,8 @@ Netflix / Spotify / Amazon / Duolingo（無料お試し・継続の設計）
 
 ## 制約（厳守）
 - 変更は1箇所のみ。文言の改善が中心で、レイアウトの大改造は禁止
+- 【担当範囲】画面に表示されるJSX本文のみ。
+  ファイル冒頭の `export const metadata` と `jsonLd` は「月次SEO/GEO担当」の領域なので絶対に触らない
 - 既存のデザイン（amber/stoneの配色・落ち着いたトーン）を壊さない
 - 実在しない実績・顧客の声・数値は絶対に追加しない
 - JSXとして必ず正しい構文にする（壊れるとサイトが落ちる）
