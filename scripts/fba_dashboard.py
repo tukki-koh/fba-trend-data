@@ -24,6 +24,7 @@ REPO      = "tukki-koh/fba-trend-data"
 BASE_DIR  = Path(__file__).resolve().parent.parent           # ~/fba-trend-data
 ENV_FILE  = BASE_DIR / ".env.local"
 REFRESH_SEC = 90
+ASSET_DIR = BASE_DIR / "scripts" / "dashboard_assets"                 # 背景画像・3D画面(index.html)
 
 # ─── ブランド：サイトと同じ amber / stone（明るい） ──────────
 
@@ -647,12 +648,16 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path.startswith("/bg.jpg"):
-            img = BASE_DIR / "scripts" / "dashboard_assets" / "office_bg.jpg"
-            if img.exists():
-                body = img.read_bytes()
+        # 画像などの静的アセット（ディレクトリ直下のファイル名のみ許可）
+        if self.path.startswith("/assets/") or self.path == "/bg.jpg":
+            name = os.path.basename(self.path.split("?")[0]) if self.path != "/bg.jpg" else "office_bg.jpg"
+            f = ASSET_DIR / name
+            if f.is_file() and f.parent == ASSET_DIR:
+                ctype = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                         "webp": "image/webp", "js": "text/javascript"}.get(f.suffix[1:].lower(), "application/octet-stream")
+                body = f.read_bytes()
                 self.send_response(200)
-                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Content-Type", ctype)
                 self.send_header("Cache-Control", "public, max-age=86400")
                 self.end_headers()
                 self.wfile.write(body)
@@ -668,9 +673,12 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         else:
-            body = INDEX_HTML.encode("utf-8")
+            # 画面は dashboard_assets/index.html を優先（ファイル編集だけで反映、再起動不要）。無ければ内蔵HTML
+            page = ASSET_DIR / "index.html"
+            body = page.read_bytes() if page.is_file() else INDEX_HTML.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
 
