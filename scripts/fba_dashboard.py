@@ -8,7 +8,7 @@ FBAトレンドレーダー LIVE 稼働ダッシュボード — localhost:8788
 データ源（すべて実データ）:
  - GitHub Actions: weekly_report.yml (member-report/note-post/email-drip) と
    facebook_marketing.yml (facebook-post) の各ジョブ最新実行結果（gh CLI）
- - 常駐Claudeタスク: weekly-marketing / monthly-seo-geo（次回予定）
+ - クラウドAI社員（cloud_agents.py 等）: コミット署名から最終稼働を判定
  - Supabase: members(trial/active) と reports 件数
 
 標準ライブラリのみ。gh CLI（認証済み）と fba-trend-data/.env.local を利用。
@@ -28,7 +28,7 @@ REFRESH_SEC = 90
 # ─── ブランド：サイトと同じ amber / stone（明るい） ──────────
 
 # ─── 組織構成（このサービス専属の社員） ─────────────────────
-# src: "gh"（GitHub Actionsジョブ）/ "claude"（常駐Claudeタスク・次回予定のみ）
+# src: "gh"（GitHub Actionsジョブ）/ "claude"（クラウドAI社員：gitコミット署名で稼働判定）
 ORG = [
     {"dept": "データ・配信部", "icon": "📊", "members": [
         {"key": "member-report", "name": "会員レポート配信担当",
@@ -50,25 +50,25 @@ ORG = [
         {"key": "facebook-post", "name": "Facebook運用担当",
          "role": "週3回の自動投稿（日・水・金）", "src": "gh", "job": "facebook-post",
          "sched": {"type": "weekly", "slots": [(6, 8, 30), (2, 19, 0), (4, 18, 0)]}},
-        {"key": "weekly-marketing", "name": "週次マーケ担当（Claude常駐）",
-         "role": "ハッシュタグ最適化・GEO更新・コピー改善", "src": "claude",
-         "sig": "週次マーケ", "interval_days": 7,
+        {"key": "sns-hashtag", "name": "SNSハッシュタグ担当",
+         "role": "Instagram用ハッシュタグを毎週最適化", "src": "claude",
+         "sig": "^SNSハッシュタグ更新\\|^週次マーケ更新", "interval_days": 7,
          "sched": {"type": "weekly", "slots": [(2, 10, 0)]}},  # 水10:00
-        {"key": "monthly-seo", "name": "月次SEO/GEO担当（Claude常駐）",
-         "role": "構造化データ・メタ最適化・llms.txt更新", "src": "claude",
-         "sig": "月次SEO/GEO", "interval_days": 31,
+        {"key": "monthly-seo", "name": "月次SEO/GEO担当",
+         "role": "llms.txt・メタ情報をAI検索向けに最適化", "src": "claude",
+         "sig": "^AI社員(seo)\\|^月次SEO/GEO", "interval_days": 31,
          "sched": {"type": "monthly", "day": 5, "h": 10, "m": 0}},
     ]},
-    {"dept": "広告本部", "icon": "📣", "members": [
-        {"key": "google-ads", "name": "Google広告最適化担当（Claude常駐）",
-         "role": "最適化スコア向上のアセットを毎週改善", "src": "claude",
-         "sig": "広告最適化", "interval_days": 7,
-         "sched": {"type": "weekly", "slots": [(2, 9, 30)]}},  # 水9:30
+    {"dept": "広告本部", "icon": "🎯", "members": [
+        {"key": "google-ads", "name": "Google広告最適化担当",
+         "role": "最適化スコア向上のアセットを隔週で改善", "src": "claude",
+         "sig": "^AI社員(ads)\\|^広告最適化", "interval_days": 14,
+         "sched": {"type": "weekly", "slots": [(2, 9, 30)]}},  # 水9:30（隔週）
     ]},
     {"dept": "経営企画・成長室", "icon": "🚀", "members": [
-        {"key": "growth-benchmark", "name": "成長・ベンチマーク担当（Claude常駐）",
-         "role": "世界最高水準の企業を手本に毎週1改善を実装・本番反映", "src": "claude",
-         "sig": "成長:", "interval_days": 7,
+        {"key": "growth-benchmark", "name": "成長・ベンチマーク担当",
+         "role": "世界最高水準の企業を手本に毎週1改善を本番反映", "src": "claude",
+         "sig": "^AI社員(growth)\\|^成長:", "interval_days": 7,
          "sched": {"type": "weekly", "slots": [(5, 10, 0)]}},  # 土10:00
     ]},
 ]
@@ -319,25 +319,20 @@ def refresh_loop():
         time.sleep(REFRESH_SEC)
 
 
-# ─── HTML（WorkShield風・ダークテーマ）──────────────────────
+# ─── HTML（実写オフィス × ホログラムAI社員）──────────────────
 INDEX_HTML = """<!doctype html>
 <html lang="ja"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FBA TREND RADAR ／ AI社屋</title>
+<title>FBA TREND RADAR ／ AIオフィス LIVE</title>
 <style>
 :root{
- --night:#04060d;--sky1:#0a1024;--sky2:#0d1730;--edge:#1e2c47;
- --tx:#e6ecfa;--mut:#8497bd;--mut2:#54648a;
- --cyan:#22d3ee;--amber:#f5b642;--green:#34d399;--red:#ff5d6c;--violet:#8b7bff;
- /* ビルの寸法（3D空間） */
- --W:600px; --D:230px; --FH:128px;
- /* カメラ（JSから書き換える） */
- --RY:-24deg; --RX:8deg; --TZ:-90px; --TX:56px;}
+ --night:#04060d;--edge:#1e2c47;--tx:#e6ecfa;--mut:#8497bd;--mut2:#54648a;
+ --cyan:#22d3ee;--amber:#f5b642;--green:#34d399;--red:#ff5d6c;--violet:#8b7bff;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--night);color:var(--tx);
  font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;font-size:13px;overflow-x:hidden}
 .mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:1480px;margin:0 auto;padding:14px 16px 40px}
+.wrap{max-width:1560px;margin:0 auto;padding:14px 16px 40px}
 
 /* ── ヘッダー ─────────────────────────────── */
 header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
@@ -362,201 +357,112 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 
 .stage{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start}
 
-/* ── 夜景 ─────────────────────────────────── */
-.scene{position:relative;border:1px solid var(--edge);border-radius:14px;overflow:hidden;min-height:1020px;
- background:linear-gradient(180deg,var(--night) 0%,var(--sky1) 50%,var(--sky2) 100%);
- perspective:1500px;perspective-origin:50% 42%}
-.stars{position:absolute;inset:0;pointer-events:none}
-.stars i{position:absolute;width:2px;height:2px;background:#cfe0ff;border-radius:50%;animation:tw 3.6s infinite}
-@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
-.skyline{position:absolute;left:0;right:0;bottom:0;height:200px;opacity:.45;pointer-events:none}
+/* ── 実写オフィス（夜） ───────────────────── */
+.scene{position:relative;border:1px solid var(--edge);border-radius:14px;overflow:hidden;
+ aspect-ratio:1920/1071;background:#04060d url(/bg.jpg) center/cover no-repeat;
+ box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.vig{position:absolute;inset:0;pointer-events:none;
+ background:radial-gradient(ellipse 80% 70% at 50% 55%,transparent 55%,rgba(2,4,10,.7) 100%),
+ linear-gradient(180deg,rgba(4,6,13,.45),transparent 28%,transparent 72%,rgba(4,6,13,.6))}
+/* 空気感：ゆっくり流れる薄い霧 */
+.haze{position:absolute;inset:-10%;pointer-events:none;opacity:.5;mix-blend-mode:screen;
+ background:radial-gradient(ellipse 40% 30% at 50% 45%,rgba(120,190,240,.16),transparent 70%);
+ animation:haze 18s ease-in-out infinite}
+@keyframes haze{0%,100%{transform:translate(0,0)}50%{transform:translate(2%,1%)}}
+/* 走査線（ホログラム全体の雰囲気） */
+.scan{position:absolute;inset:0;pointer-events:none;opacity:.18;mix-blend-mode:overlay;
+ background:repeating-linear-gradient(180deg,rgba(255,255,255,.35) 0 1px,transparent 1px 4px)}
+.beam{position:absolute;left:0;right:0;height:14%;pointer-events:none;mix-blend-mode:screen;opacity:.35;
+ background:linear-gradient(180deg,transparent,rgba(120,220,255,.25),transparent);animation:beam 9s linear infinite}
+@keyframes beam{0%{top:-16%}100%{top:104%}}
 
-/* ── 3D空間 ───────────────────────────────── */
-/* カメラ: TX/TZ で寄り引き、RX/RY で回り込み。JSがCSS変数を書き換える */
-.world{position:relative;width:var(--W);height:calc(6 * var(--FH));
- margin:150px auto 0;transform-style:preserve-3d;
- transform:translate3d(var(--TX),0,var(--TZ)) rotateX(var(--RX)) rotateY(var(--RY))}
-/* 各階＝奥行きのある箱（正面は開口） */
-.fl{position:absolute;left:0;top:calc(var(--k) * var(--FH));width:var(--W);height:var(--FH);
- transform-style:preserve-3d}
-.f{position:absolute;left:0;top:0}
-.back{width:var(--W);height:var(--FH);transform:translateZ(calc(-1 * var(--D)));
- background:linear-gradient(180deg,#0e1728,#080e1a);border:1px solid #16233c}
-.lft,.rgt{width:var(--D);height:var(--FH);transform-origin:0 0;transform:rotateY(90deg);
- background:linear-gradient(90deg,#0c1424,#060b15)}
-.rgt{left:var(--W)}
-.deck{width:var(--W);height:var(--D);top:var(--FH);transform-origin:0 0;transform:rotateX(-90deg);
- background:linear-gradient(180deg,#0b1220,#131e33)}
-.ceilf{width:var(--W);height:var(--D);top:0;transform-origin:0 0;transform:rotateX(-90deg);
- background:linear-gradient(180deg,#0a101d,#0d1524);transition:opacity .3s}
-/* 見下ろすと天井が邪魔になるので、俯瞰時だけ透過して室内を見せる（ドールハウス視点） */
-body.topview .ceilf{opacity:.12}
-body.topview .roof .top{opacity:.25}
-body.topview .rooftop{opacity:.35}
-/* 点灯階 */
-.fl.lit .back{background:linear-gradient(180deg,#1b2b49,#101a2e);box-shadow:0 0 40px rgba(60,150,220,.22) inset}
-.fl.lit .lft,.fl.lit .rgt{background:linear-gradient(90deg,#16243d,#0b1220)}
-.fl.lit .deck{background:linear-gradient(180deg,#16243d,#1e2f4d)}
-.fl.lit .ceilf{background:linear-gradient(180deg,#0f1a2c,#16243d)}
-.fl.rest .back{background:linear-gradient(180deg,#241b3d,#150f28)}
-.fl.rest .deck{background:linear-gradient(180deg,#171029,#241b3d)}
-/* スラブ（床の厚み） */
-.slab{position:absolute;left:-6px;top:calc(var(--FH) - 5px);width:calc(var(--W) + 12px);height:10px;
- transform:translateZ(4px);background:linear-gradient(180deg,#31456e,#0b1120);border-radius:2px}
-/* 奥の窓 */
-.wins{position:absolute;left:0;top:0;width:var(--W);height:var(--FH);
- transform:translateZ(calc(-1 * var(--D) + 1px));display:flex;gap:12px;padding:22px 26px 46px}
-.wins i{flex:1;border-radius:2px;background:#0b1424;border:1px solid #1a2a45}
-.fl.lit .wins i{background:linear-gradient(180deg,#3a5c8e,#1a2b47);
- box-shadow:0 0 16px rgba(120,190,255,.35)}
-/* 天井照明 */
-.lamp{position:absolute;width:150px;height:26px;top:0;transform-origin:0 0;
- transform:translate3d(var(--x),6px,0) rotateX(-90deg);border-radius:3px;background:#111c30}
-.fl.lit .lamp{background:#dff2ff;box-shadow:0 0 26px rgba(190,235,255,.85),0 0 60px rgba(120,200,255,.35)}
+/* ── 動画風の大見出し ─────────────────────── */
+.cap{position:absolute;left:50%;top:7%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:40;width:96%}
+.cap b{display:block;font-size:clamp(20px,3.3vw,50px);font-weight:900;color:#fff;letter-spacing:.02em;line-height:1.15;
+ -webkit-text-stroke:2.2px #000;paint-order:stroke fill;text-shadow:0 5px 14px rgba(0,0,0,.85)}
+.cap b em{font-style:normal;color:#ffd21f}
+.cap b i{font-style:normal;color:#ff4d5a}
+.cap small{display:inline-block;margin-top:8px;font-size:clamp(10px,1vw,14px);font-weight:800;color:#dff5ff;letter-spacing:.14em;
+ background:rgba(4,8,18,.62);border:1px solid rgba(34,211,238,.35);padding:4px 12px;border-radius:999px;backdrop-filter:blur(3px)}
 
-/* ── 机（3Dの箱） ─────────────────────────── */
-.dsk{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d;
- transform:translate3d(var(--x),0,var(--z))}
-.dsk .dtop{position:absolute;left:-38px;top:0;width:76px;height:42px;transform-origin:0 0;
- transform:translateY(-30px) rotateX(-90deg);background:linear-gradient(180deg,#5a4630,#33261a);border-radius:2px}
-.dsk .dfr{position:absolute;left:-38px;top:-30px;width:76px;height:30px;
- background:linear-gradient(180deg,#3a2c1d,#1d1610)}
-.dsk .mon{position:absolute;left:-15px;bottom:30px;width:30px;height:20px;border-radius:2px;
- transform-origin:bottom center;transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)));
- background:#0d1526;border:1px solid #22344f}
-.fl.lit .dsk .mon{background:linear-gradient(180deg,#2f7d99,#0e2b3a);border-color:#4890ad;
- box-shadow:0 0 14px rgba(34,211,238,.6);animation:mon 2.4s steps(3,end) infinite}
-@keyframes mon{0%{opacity:.7}50%{opacity:1}100%{opacity:.82}}
-.plt{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d;
- transform:translate3d(var(--x),0,var(--z))}
-.plt i{position:absolute;left:-9px;bottom:0;width:18px;height:30px;
- transform-origin:bottom center;transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)));
- border-radius:50% 50% 3px 3px;background:linear-gradient(180deg,#2f6647,#153021)}
+/* ── 社員（ホログラム） ───────────────────── */
+.emp{position:absolute;height:var(--h);aspect-ratio:100/120;transform:translate(-50%,-100%);
+ transform-origin:50% 100%}
+/* 床・椅子への光のこぼれ */
+.emp:before{content:"";position:absolute;left:50%;bottom:-6%;width:170%;height:34%;transform:translateX(-50%);
+ background:radial-gradient(ellipse at 50% 50%,rgba(70,190,255,.45),rgba(40,120,255,.12) 45%,transparent 70%);
+ mix-blend-mode:screen;pointer-events:none;animation:pool 3s ease-in-out infinite}
+@keyframes pool{0%,100%{opacity:.75}50%{opacity:1}}
+.emp .fig{position:absolute;inset:0;mix-blend-mode:screen;animation:flick 5.5s infinite}
+.emp.r .fig{transform:scaleX(-1)}
+.emp svg{width:100%;height:100%;overflow:visible;display:block;
+ filter:drop-shadow(0 0 5px rgba(120,225,255,.95)) drop-shadow(0 0 20px rgba(50,150,255,.6))}
+@keyframes flick{0%,100%{opacity:1}31%{opacity:1}32%{opacity:.55}33%{opacity:1}64%{opacity:1}65%{opacity:.7}66%{opacity:1}87%{opacity:1}88%{opacity:.8}89%{opacity:1}}
+/* 稼働中：タイピング／うなずき */
+.emp.on .handR{animation:type .26s ease-in-out infinite alternate}
+.emp.on .handL{animation:type .26s ease-in-out .13s infinite alternate}
+@keyframes type{from{transform:translate(0,0)}to{transform:translate(-1.5px,-2.6px)}}
+.emp.on .head{animation:nod 3.4s ease-in-out infinite}
+@keyframes nod{0%,100%{transform:rotate(0)}38%{transform:rotate(-3deg)}72%{transform:rotate(2.5deg)}}
+.emp .head,.emp .handR,.emp .handL{transform-box:fill-box;transform-origin:50% 100%}
+.emp.on .torso{animation:breath 4s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:translateY(0)}50%{transform:translateY(-.6px)}}
+/* データ粒子 */
+.emp .px{position:absolute;inset:0;pointer-events:none}
+.emp .px i{position:absolute;bottom:25%;left:var(--l);width:3px;height:3px;border-radius:50%;background:#bff3ff;
+ box-shadow:0 0 6px #7fe6ff;opacity:0;animation:rise var(--d) linear var(--dl) infinite}
+@keyframes rise{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translateY(-90px) scale(1.1)}}
+.emp:not(.on) .px{display:none}
+/* 実行中：強い脈動 */
+.emp.run svg{animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 6px rgba(120,225,255,1)) drop-shadow(0 0 22px rgba(50,150,255,.7))}
+ 50%{filter:drop-shadow(0 0 12px rgba(160,240,255,1)) drop-shadow(0 0 44px rgba(80,180,255,.95))}}
+/* 待機：薄い残像。動かない */
+.emp.idle .fig{opacity:.26;animation:idleflick 7s infinite}
+@keyframes idleflick{0%,100%{opacity:.26}48%{opacity:.26}50%{opacity:.12}52%{opacity:.26}}
+.emp.idle:before{opacity:.25;animation:none}
+/* 要確認：赤いホログラム＋グリッチ */
+.emp.err svg{filter:drop-shadow(0 0 5px rgba(255,110,130,.95)) drop-shadow(0 0 22px rgba(255,60,90,.6))}
+.emp.err .fig{animation:glitch .5s steps(2,end) infinite}
+@keyframes glitch{0%,100%{transform:translate(0,0)}50%{transform:translate(1.5px,-1px) skewX(-2deg)}}
+.emp.err.r .fig{animation:glitchR .5s steps(2,end) infinite}
+@keyframes glitchR{0%,100%{transform:scaleX(-1) translate(0,0)}50%{transform:scaleX(-1) translate(1.5px,-1px) skewX(-2deg)}}
+.emp.err:before{background:radial-gradient(ellipse,rgba(255,80,110,.4),transparent 70%)}
+/* AR風ネームタグ */
+.emp .lb{position:absolute;left:50%;bottom:104%;transform:translateX(var(--lx,-50%));white-space:nowrap;z-index:5;
+ display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:auto}
+/* 引き出し線：頭上から斜めに名札へ。奥の席ほど長い */
+.emp .lb:after{content:"";width:1px;height:var(--ll,10px);background:linear-gradient(180deg,rgba(150,235,255,.9),rgba(150,235,255,.15))}
+.emp .lb:before{content:"";position:absolute;bottom:0;left:50%;width:5px;height:5px;border-radius:50%;
+ transform:translate(-50%,50%);background:#bff3ff;box-shadow:0 0 8px #7fe6ff}
+.emp .nm{font-size:10.5px;font-weight:800;color:#e9fbff;letter-spacing:.04em;
+ background:rgba(4,10,22,.72);border:1px solid rgba(90,220,255,.45);padding:2px 8px;border-radius:4px;
+ box-shadow:0 0 12px rgba(34,211,238,.25);backdrop-filter:blur(3px)}
+.emp .st{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:8.5px;font-weight:800;letter-spacing:.12em;
+ color:#9be7f5;display:flex;align-items:center;gap:5px}
+.emp .st i{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 1.4s infinite}
+.emp.run .st i{background:var(--cyan);box-shadow:0 0 7px var(--cyan);animation-duration:.5s}
+.emp.idle .st{color:#6d7fa3}.emp.idle .st i{background:#3a4a6b;box-shadow:none;animation:none}
+.emp.idle .nm{opacity:.75;border-color:rgba(120,140,180,.35);box-shadow:none}
+.emp.err .st{color:#ffb3bc}.emp.err .st i{background:var(--red);box-shadow:0 0 7px var(--red)}
+.emp.err .nm{border-color:rgba(255,93,108,.55)}
+.emp .tip{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;white-space:nowrap;display:none;
+ background:rgba(4,10,22,.92);border:1px solid rgba(90,220,255,.4);border-radius:6px;padding:6px 9px;font-size:10px;color:#cfe6ff;
+ text-align:left;line-height:1.5;z-index:9}
+.emp .lb:hover .tip{display:block}
+.emp .tip b{color:#9be7f5}
+/* 小さい画面ではネームタグを縮小 */
+@media(max-width:900px){.emp .nm{font-size:8px;padding:1px 5px}.emp .st{font-size:7px}}
 
-/* ── 社員（3D空間を歩くビルボード） ───────── */
-.pp{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d}
-.pp.walk{animation:walk3d var(--dur,18s) ease-in-out var(--delay,0s) infinite}
-@keyframes walk3d{
- 0%,7%    {transform:translate3d(calc(70px + var(--xo,0px)),0,calc(-30px + var(--zo,0px)))}
- 27%,37%  {transform:translate3d(calc(230px + var(--xo,0px)),0,calc(-115px + var(--zo,0px)))}
- 57%,67%  {transform:translate3d(calc(430px + var(--xo,0px)),0,calc(-55px + var(--zo,0px)))}
- 88%,100% {transform:translate3d(calc(70px + var(--xo,0px)),0,calc(-30px + var(--zo,0px)))}}
-.pp .bb{position:absolute;left:-17px;bottom:0;width:34px;
- transform-origin:bottom center;
- transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)))}
-.pp svg{width:100%;height:auto;display:block;image-rendering:pixelated;shape-rendering:crispEdges;
- filter:drop-shadow(0 4px 6px rgba(0,0,0,.7))}
-.pp.walk .legL,.pp.walk .armR{animation:stepA .46s steps(2,end) infinite}
-.pp.walk .legR,.pp.walk .armL{animation:stepB .46s steps(2,end) infinite}
-@keyframes stepA{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
-@keyframes stepB{0%,100%{transform:translateY(-1.5px)}50%{transform:translateY(0)}}
-.pp .legL,.pp .legR,.pp .armL,.pp .armR{transform-box:fill-box;transform-origin:top center}
-/* 影 */
-.pp .shadow{position:absolute;left:-14px;bottom:-3px;width:28px;height:10px;border-radius:50%;
- transform-origin:0 0;transform:rotateX(-90deg);background:radial-gradient(rgba(0,0,0,.55),transparent 70%)}
-.pp.rest{opacity:.62}
-.pp.rest svg{animation:doze 3.4s ease-in-out infinite}
-@keyframes doze{0%,100%{transform:translateY(0)}50%{transform:translateY(1.5px)}}
-.pp .zz{position:absolute;left:14px;bottom:34px;font-size:11px;color:#b6a8e6;animation:zz 2.8s ease-out infinite}
-@keyframes zz{0%{opacity:0;transform:translate(0,4px)}35%{opacity:.95}100%{opacity:0;transform:translate(9px,-12px)}}
-.pp.err svg{animation:panic .3s steps(2,end) infinite}
-@keyframes panic{0%,100%{transform:translateX(-1px)}50%{transform:translateX(1px)}}
-.pp .nm{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;white-space:nowrap;
- font-size:8.5px;color:#b3c7e8;background:rgba(4,7,14,.8);border:1px solid var(--edge);
- padding:0 5px;border-radius:3px}
-.pp .bub{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;
- white-space:nowrap;background:#e2ecff;color:#0b1424;font-size:9px;font-weight:700;
- padding:2px 7px;border-radius:4px;animation:pop 10s ease-in-out infinite}
-@keyframes pop{0%,82%,100%{opacity:0}86%,95%{opacity:1}}
-
-/* ── 看板・階数（正面を向くビルボード） ───── */
-.bbx{position:absolute;left:0;top:var(--FH);width:0;height:0;transform-style:preserve-3d;
- transform:translate3d(var(--x),var(--y,0px),var(--z))}
-.bbx>span{position:absolute;bottom:0;left:0;white-space:nowrap;transform-origin:bottom left;
- transform:rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)))}
-.dir{display:flex;align-items:center;gap:9px}
-.plate{display:flex;align-items:center;gap:8px;background:rgba(6,11,22,.94);border:1px solid #2b4066;
- border-radius:5px;padding:4px 10px;font-weight:800;font-size:12px;
- box-shadow:0 3px 14px rgba(0,0,0,.6)}
-.fl.lit .plate{border-color:rgba(34,211,238,.4);box-shadow:0 0 16px rgba(34,211,238,.18)}
-.plate b{font-size:10px;font-weight:700;color:var(--mut);border-left:1px solid var(--edge);padding-left:8px}
-.fl.lit .plate b{color:#9be7f5}
-.fnum{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-weight:900;font-size:19px;color:#42557d;
- letter-spacing:.04em}
-.fl.lit .fnum{color:var(--cyan);text-shadow:0 0 14px rgba(34,211,238,.8)}
-.fl.rest .fnum{color:var(--violet)}
-.led{display:inline-flex;align-items:center;gap:5px;font-family:"SF Mono",ui-monospace,Menlo,monospace;
- font-size:8.5px;font-weight:800;letter-spacing:.1em;color:#6d7fa3;
- border-left:1px solid var(--edge);padding-left:8px}
-.led i{width:6px;height:6px;border-radius:50%;background:#3a4a6b}
-.fl.lit .led{color:#9be7f5;border-color:rgba(34,211,238,.35)}
-.fl.lit .led i{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.8s infinite}
-
-/* ── 屋上・エレベーター・地面 ─────────────── */
-.roof{position:absolute;left:-8px;top:-14px;width:calc(var(--W) + 16px);height:14px;
- transform-style:preserve-3d;background:linear-gradient(180deg,#2b3f66,#111a2c)}
-.roof .top{position:absolute;left:0;top:0;width:100%;height:calc(var(--D) + 16px);
- transform-origin:0 0;transform:rotateX(-90deg);background:linear-gradient(180deg,#1a2740,#0d1524)}
-.sign{position:absolute;left:0;top:-52px;width:0;height:0;transform-style:preserve-3d;
- transform:translate3d(calc(var(--W) / 2),0,-20px)}
-.sign>span{position:absolute;bottom:0;left:0;transform:translateX(-50%) rotateY(calc(-1 * var(--RY))) rotateX(calc(-1 * var(--RX)));
- font-weight:900;letter-spacing:.16em;font-size:17px;white-space:nowrap;color:#c9f6ff;
- text-shadow:0 0 10px rgba(34,211,238,.95),0 0 30px rgba(34,211,238,.6);animation:neon 5s infinite}
-@keyframes neon{0%,92%,100%{opacity:1}94%{opacity:.3}96%{opacity:1}97%{opacity:.55}}
-.mast{position:absolute;left:calc(var(--W) / 2);top:-92px;width:2px;height:40px;background:#2b4270;
- transform:translateZ(-20px)}
-.mast:after{content:"";position:absolute;top:-6px;left:-4px;width:9px;height:9px;border-radius:50%;
- background:var(--red);box-shadow:0 0 14px var(--red);animation:blink 2s infinite}
-/* rotateY(-24deg)では左側が手前に来るため、左端に置くと視認しやすい */
-.shaft{position:absolute;left:8px;top:0;width:42px;height:calc(6 * var(--FH));
- transform-style:preserve-3d;transform:translateZ(-56px)}
-.shaft .glassf{position:absolute;inset:0;border:1px solid #3a5c8a;border-radius:2px;
- background:linear-gradient(180deg,rgba(24,44,74,.92),rgba(10,18,32,.92));
- background-image:repeating-linear-gradient(180deg,transparent 0 120px,#42679b 120px 128px);
- box-shadow:0 0 22px rgba(34,211,238,.22) inset}
-.car{position:absolute;left:5px;width:32px;height:40px;border-radius:2px;
- background:linear-gradient(180deg,#4a86ad,#14263e);border:1px solid #5f9ec4;
- box-shadow:0 0 20px rgba(34,211,238,.7);animation:ride 15s ease-in-out infinite}
-.car:after{content:"";position:absolute;top:50%;left:2px;right:2px;height:1px;background:rgba(200,245,255,.6)}
-@keyframes ride{0%,100%{top:6px}25%{top:480px}50%{top:150px}75%{top:640px}}
-.ground{position:absolute;left:calc(var(--W) / 2);top:calc(6 * var(--FH));width:0;height:0;transform-style:preserve-3d}
-.ground>i{position:absolute;left:-700px;top:0;width:1400px;height:900px;transform-origin:0 0;
- transform:rotateX(-90deg);background:
- radial-gradient(ellipse 420px 260px at 700px 120px,rgba(70,150,220,.16),transparent 70%),
- linear-gradient(180deg,#080e1a,#05070f)}
-
-/* ── 四隅の柱（立方体の4面）でビルの塊感を出す ── */
-.col{position:absolute;top:-14px;left:0;width:0;height:calc(6 * var(--FH) + 14px);
- transform-style:preserve-3d;transform:translate3d(var(--cx),0,var(--cz))}
-.col i{position:absolute;top:0;height:100%;width:24px;left:-12px;
- background:linear-gradient(180deg,#2a3c5e,#0a1120);border-top:1px solid #3d5580}
-.col i:nth-child(1){transform:translateZ(12px)}
-.col i:nth-child(2){transform:rotateY(180deg) translateZ(12px);filter:brightness(.6)}
-.col i:nth-child(3){transform:rotateY(-90deg) translateZ(12px);filter:brightness(.78)}
-.col i:nth-child(4){transform:rotateY(90deg) translateZ(12px);filter:brightness(.78)}
-
-/* ── 屋上設備 ── */
-.rooftop{position:absolute;left:0;top:-14px;width:0;height:0;transform-style:preserve-3d}
-.gear{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;
- transform:translate3d(var(--gx),0,var(--gz))}
-.gear .gt{position:absolute;left:0;top:0;width:var(--gw);height:var(--gd);transform-origin:0 0;
- transform:translateY(calc(-1 * var(--gh))) rotateX(-90deg);
- background:linear-gradient(160deg,#33496e,#1b2740)}
-.gear .gf{position:absolute;left:0;top:calc(-1 * var(--gh));width:var(--gw);height:var(--gh);
- background:linear-gradient(180deg,#22334f,#111a2b)}
-.gear .gs{position:absolute;left:var(--gw);top:calc(-1 * var(--gh));width:var(--gd);height:var(--gh);
- transform-origin:0 0;transform:rotateY(90deg);background:linear-gradient(180deg,#18253b,#0c1322)}
-
-/* ── カメラ操作UI ── */
-.cam{position:absolute;left:12px;top:12px;z-index:30;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
- background:rgba(6,11,22,.82);border:1px solid var(--edge);border-radius:9px;padding:7px 9px;backdrop-filter:blur(3px)}
-.cam button{font:inherit;font-size:11px;font-weight:800;color:#a9bfe0;cursor:pointer;
- background:#0d1626;border:1px solid #26395c;border-radius:6px;padding:4px 10px;transition:.15s}
-.cam button:hover{background:#16243c;color:#dff0ff;border-color:#3c5c8c}
-.cam button.on{background:rgba(34,211,238,.16);color:#bff4ff;border-color:rgba(34,211,238,.6)}
-.cam .hint{font-size:10px;color:var(--mut2);margin-left:4px}
-.scene{cursor:grab}
-.scene.grabbing{cursor:grabbing}
+/* ── 部署凡例（下部） ─────────────────────── */
+.legend{position:absolute;left:12px;bottom:12px;z-index:40;display:flex;gap:6px;flex-wrap:wrap;max-width:70%}
+.lg{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;color:#cfe6ff;
+ background:rgba(4,10,22,.78);border:1px solid var(--edge);border-radius:999px;padding:4px 10px;backdrop-filter:blur(3px)}
+.lg b{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:9.5px;color:#9be7f5;font-weight:800}
+.lg.lit{border-color:rgba(34,211,238,.45);box-shadow:0 0 12px rgba(34,211,238,.18)}
+.clock{position:absolute;right:12px;bottom:12px;z-index:40;font-family:"SF Mono",ui-monospace,Menlo,monospace;
+ font-size:12px;font-weight:800;color:#9be7f5;background:rgba(4,10,22,.78);border:1px solid rgba(34,211,238,.35);
+ padding:5px 11px;border-radius:8px;letter-spacing:.1em}
 
 /* ── サイドパネル ─────────────────────────── */
 .side{display:flex;flex-direction:column;gap:12px;position:sticky;top:14px}
@@ -575,17 +481,35 @@ body.topview .rooftop{opacity:.35}
  background:rgba(34,211,238,.14);color:#9be7f5;border:1px solid rgba(34,211,238,.3)}
 .tg.g{background:rgba(52,211,153,.13);color:#8ff0cb;border-color:rgba(52,211,153,.32)}
 .tg.a{background:rgba(245,182,66,.13);color:#ffd899;border-color:rgba(245,182,66,.32)}
+.tg.r{background:rgba(255,93,108,.13);color:#ffb3bc;border-color:rgba(255,93,108,.35)}
 .ttx{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tago{font-size:9.5px;color:var(--mut2);flex:0 0 auto}
 .foot{margin-top:14px;text-align:center;font-size:10.5px;color:var(--mut2)}
-@media(max-width:1180px){.stage{grid-template-columns:1fr}.side{position:static}
- :root{--W:460px;--D:150px;--FH:112px}}
+@media(max-width:1180px){.stage{grid-template-columns:1fr}.side{position:static}}
 </style></head>
 <body><div class="wrap">
 
+<!-- ホログラム用の共通定義（グラデーション・グリッド） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <defs>
+  <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#c8f6ff" stop-opacity=".85"/>
+   <stop offset=".45" stop-color="#4fc3ff" stop-opacity=".62"/>
+   <stop offset="1" stop-color="#1f5cff" stop-opacity=".38"/></linearGradient>
+  <linearGradient id="hgErr" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#ffd0d6" stop-opacity=".85"/>
+   <stop offset=".45" stop-color="#ff6b85" stop-opacity=".6"/>
+   <stop offset="1" stop-color="#b3123a" stop-opacity=".4"/></linearGradient>
+  <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
+   <path d="M6,0 L0,0 0,6" fill="none" stroke="rgba(200,245,255,.55)" stroke-width=".7"/></pattern>
+  <pattern id="scanp" width="4" height="3" patternUnits="userSpaceOnUse">
+   <rect width="4" height="1" fill="rgba(0,10,30,.35)"/></pattern>
+ </defs>
+</svg>
+
 <header>
   <div class="brand"><span class="blogo">📡</span>
-    <div>FBA TREND RADAR<div class="tag">AI HEADQUARTERS ／ LIVE MONITOR</div></div></div>
+    <div>FBA TREND RADAR<div class="tag">AI OFFICE ／ LIVE MONITOR</div></div></div>
   <div class="hud">
     <div class="hd"><span class="l">STAFF</span><span class="v" id="hemp">–</span></div>
     <div class="hd"><span class="l">ON DUTY</span><span class="v gr" id="hrun">–</span></div>
@@ -596,27 +520,16 @@ body.topview .rooftop{opacity:.35}
 </header>
 
 <div class="stage">
-  <div class="scene">
-    <div class="stars" id="stars"></div>
-    <svg class="skyline" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
-      <path fill="#080e1c" d="M0,200 L0,130 40,130 40,96 92,96 92,142 150,142 150,78 205,78 205,150
-        260,150 260,110 320,110 320,68 372,68 372,156 430,156 430,120 495,120 495,160 560,160 560,100
-        615,100 615,148 680,148 680,74 735,74 735,152 800,152 800,114 860,114 860,160 920,160 920,92
-        975,92 975,146 1040,146 1040,122 1100,122 1100,158 1160,158 1160,104 1200,104 1200,200 Z"/>
-      <g fill="#1a2b4a" opacity=".8" id="cityWin"></g>
-    </svg>
-    <div class="cam">
-      <button data-ry="0"   data-rx="4">正面</button>
-      <button data-ry="-24" data-rx="8">斜め</button>
-      <button data-ry="-34" data-rx="36">俯瞰</button>
-      <button data-ry="-70" data-rx="10">左から</button>
-      <button data-ry="46"  data-rx="10">右から</button>
-      <button data-ry="-20" data-rx="-8">見上げ</button>
-      <button id="autoBtn">自動回転</button>
-      <button id="resetBtn">リセット</button>
-      <span class="hint">ドラッグで回転 ／ ホイールでズーム</span>
-    </div>
-    <div class="world" id="world"></div>
+  <div class="scene" id="scene">
+    <div class="haze"></div>
+    <div class="vig"></div>
+    <div class="beam"></div>
+    <div class="cap"><b><i>AI</i>社員 <em id="capN">–名</em>が自動運転中</b>
+      <small>FBAトレンドレーダー ／ 24H 無人稼働 ／ <span id="capSub">–</span></small></div>
+    <div id="staff"></div>
+    <div class="scan"></div>
+    <div class="legend" id="legend"></div>
+    <div class="clock mono" id="sclock">--:--:--</div>
   </div>
 
   <div class="side">
@@ -630,67 +543,60 @@ body.topview .rooftop{opacity:.35}
     </div>
   </div>
 </div>
-<div class="foot">⚡ GitHub Actions で 24時間365日 稼働中 ・ 8秒ごとに自動更新</div>
+<div class="foot">⚡ GitHub Actions で 24時間365日 稼働中 ・ 8秒ごとに自動更新 ・ 名札にカーソルを合わせると詳細</div>
 </div>
 
 <script>
-const LBL={run:'実行中',ok:'稼働中',error:'要確認',warn:'待機',idle:'待機',resident:'常駐'};
-const PAL=['#f2884b','#ef6b8a','#f5c451','#5b8cff','#37d399','#b07be8','#e8724a','#4fc3d9'];
-const LINES=['データ確認中','順調です','あと少し','数字いいね','ここ調整中','完了しました'];
+const LBL={run:'RUNNING',ok:'ACTIVE',error:'ERROR',warn:'STANDBY',idle:'STANDBY'};
+const LBLJ={run:'実行中',ok:'稼働中',error:'要確認',warn:'待機',idle:'待機'};
 function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
 const short=n=>n.replace(/（.*?）/g,'').replace(/担当$/,'');
 
-(()=>{let s='';for(let i=0;i<80;i++){s+=`<i style="left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*44).toFixed(1)}%;animation-delay:${(Math.random()*3.6).toFixed(1)}s"></i>`}
- document.getElementById('stars').innerHTML=s;
- let w='';for(let i=0;i<100;i++){w+=`<rect x="${(Math.random()*1190).toFixed(0)}" y="${(70+Math.random()*125).toFixed(0)}" width="3" height="4"/>`}
- document.getElementById('cityWin').innerHTML=w;})();
+/* 座席（背景写真の椅子位置に合わせた % 座標）: [x, y(腰の位置), 身長%, 向き] */
+/* 5,6番目 = 名札の引き出し線の長さ(px) と 横ずらし(%)。奥の席ほど高く・外側へ出して重なりを防ぐ */
+const SEATS=[
+ [33.4,74.5,26,'l',10,-70],[38.8,68.5,21.5,'l',40,-95],[41.7,65,18.5,'l',72,-120],[43.3,62.5,16,'l',104,-150],   /* 左列：手前→奥 */
+ [65.2,74.5,26,'r',10,-30],[61.5,68.5,21.5,'r',40,-5],[58.2,65,18.5,'r',72,20],[56.9,62.5,16,'r',104,50],        /* 右列：手前→奥 */
+ [8.5,79,25,'r',10,-50],[92,79,25,'l',10,-50],                                                                    /* 窓際の個室席 */
+];
+/* 社員→座席の固定割当（順序＝ORGの並び）。9人目(成長室)は窓際の個室席 */
+const SEAT_ORDER=[0,1,2,3,4,5,6,7,8,9];
 
-function person(name,rest){
-  const c=PAL[hash(name)%PAL.length];
-  return `<svg viewBox="0 0 16 23">
-    <rect x="4" y="1" width="8" height="7" rx="1" fill="${c}"/>
-    <rect x="6" y="4" width="1.6" height="${rest?0.8:2}" fill="#04060d"/>
-    <rect x="8.6" y="4" width="1.6" height="${rest?0.8:2}" fill="#04060d"/>
-    <rect x="4" y="8" width="8" height="8" fill="${c}"/>
-    <rect x="5.5" y="9" width="5" height="3" fill="rgba(255,255,255,.2)"/>
-    <rect class="armL" x="2" y="9" width="2" height="6" fill="${c}"/>
-    <rect class="armR" x="12" y="9" width="2" height="6" fill="${c}"/>
-    <rect class="legL" x="5" y="16" width="2.6" height="6" fill="#26314c"/>
-    <rect class="legR" x="8.4" y="16" width="2.6" height="6" fill="#26314c"/>
+function figure(err){
+  const g=err?'url(#hgErr)':'url(#hg)', mid='m'+Math.floor(Math.random()*1e9);
+  const body=`
+    <g class="torso"><path d="M27,54 C29,42 40,37 52,37 C64,37 75,42 77,54 L81,120 L23,120 Z"/></g>
+    <path d="M46,29 L58,29 L59.5,40 L44.5,40 Z"/>
+    <g class="head"><ellipse cx="52" cy="18.5" rx="12.5" ry="14.5"/></g>
+    <g class="armF"><path d="M31,50 L16,73" fill="none" stroke-width="8" stroke-linecap="round"/>
+      <g class="handL"><path d="M16,73 L3,66" fill="none" stroke-width="7" stroke-linecap="round"/></g></g>
+    <g class="armN"><path d="M74,53 L64,83" fill="none" stroke-width="9.5" stroke-linecap="round"/>
+      <g class="handR"><path d="M64,83 L38,88" fill="none" stroke-width="8.5" stroke-linecap="round"/></g></g>`;
+  return `<svg viewBox="0 0 100 120">
+    <mask id="${mid}"><g fill="#fff" stroke="#fff" stroke-width="1">${body}</g></mask>
+    <g fill="${g}" stroke="${err?'#ffd6dc':'#c9f4ff'}" stroke-width="1" stroke-opacity=".9">${body}</g>
+    <rect x="-2" y="-2" width="104" height="124" fill="url(#grid)" mask="url(#${mid})" opacity=".8"/>
+    <rect x="-2" y="-2" width="104" height="124" fill="url(#scanp)" mask="url(#${mid})"/>
   </svg>`;
 }
-function staffWalk(m){
-  const dur=(15+hash(m.name)%10)+'s', delay=(-(hash(m.name+'d')%14))+'s';
-  const zo=[0,-42,38,-20][hash(m.name+'z')%4], xo=[0,-38,42,18][hash(m.name+'x')%4];
-  return `<div class="pp walk ${m.state==='error'?'err':''}" style="--dur:${dur};--delay:${delay};--zo:${zo}px;--xo:${xo}px"
-     title="${m.name}｜${LBL[m.state]||''}｜次回 ${m.next}">
-     <div class="shadow"></div>
-     <div class="bb"><div class="bub">${LINES[hash(m.name)%LINES.length]}</div>
-       ${person(m.name,false)}<div class="nm">${short(m.name)}</div></div></div>`;
+function particles(n){
+  let s='';for(let i=0;i<n;i++){s+=`<i style="--l:${20+Math.random()*60}%;--d:${(2.2+Math.random()*2).toFixed(1)}s;--dl:${(-Math.random()*4).toFixed(1)}s"></i>`}
+  return `<div class="px">${s}</div>`;
 }
-function staffRest(m,i){
-  return `<div class="pp rest" style="transform:translate3d(${90+i*120}px,0,-70px)"
-     title="${m.name}｜${LBL[m.state]||''}｜次回 ${m.next}">
-     <div class="shadow"></div>
-     <div class="bb"><div class="zz">z</div>${person(m.name,true)}
-       <div class="nm">${short(m.name)}</div></div></div>`;
+function empHTML(m,dept,seatIdx){
+  const [x,y,h,side,ll,lx]=SEATS[seatIdx]||SEATS[0];
+  const cls=m.state==='run'?'on run':m.state==='ok'?'on':m.state==='error'?'err':'idle';
+  const z=100-Math.round(y);   /* 手前ほど前面 */
+  return `<div class="emp ${cls} ${side}" style="left:${x}%;top:${y}%;--h:${h}%;--ll:${ll}px;--lx:${lx}%;z-index:${z}">
+    <div class="fig">${figure(m.state==='error')}</div>
+    ${particles(6)}
+    <div class="lb"><div class="nm">${short(m.name)}</div>
+      <div class="st"><i></i>${LBL[m.state]||'STANDBY'}</div>
+      <div class="tip"><b>${m.name}</b><br>${dept}<br>${m.role||''}<br>
+        状態: ${LBLJ[m.state]||''} ／ 最終: ${m.last||'-'}<br>次回: ${m.next}</div></div>
+  </div>`;
 }
 const isActive=s=>s==='ok'||s==='run'||s==='error';
-
-function floorHTML(d,k,label,cls,ledTxt,inner){
-  return `<div class="fl ${cls}" style="--k:${k}">
-    <div class="f back"></div><div class="f lft"></div><div class="f rgt"></div>
-    <div class="f deck"></div><div class="f ceilf"></div>
-    <div class="wins">${'<i></i>'.repeat(6)}</div>
-    <div class="lamp" style="--x:110px"></div><div class="lamp" style="--x:340px"></div>
-    <div class="slab"></div>
-    <div class="bbx" style="--x:-252px;--y:-58px;--z:64px"><span class="dir">
-      <b class="fnum">${label}</b>
-      <span class="plate">${d.icon} ${d.dept}<b>${d.cnt}</b><span class="led"><i></i>${ledTxt}</span></span>
-    </span></div>
-    <div class="plt" style="--x:530px;--z:-150px"><i></i></div>
-    ${inner}</div>`;
-}
 
 async function tick(){
  try{
@@ -698,49 +604,32 @@ async function tick(){
   const k=s.kpi||{};
   hemp.textContent=(k.resident||0)+'名'; hrun.textContent=(s.running_now||0)+'名';
   hact.textContent=(s.today_activity||0)+'件'; hclock.textContent=s.hhmm||'–';
+  sclock.textContent=s.hhmm||'–';
+  capN.textContent=(s.running_now||0)+'名';
+  capSub.textContent=`本日 ${s.today_activity||0} 件の業務を完了`;
 
-  const resting=[];
-  const depts=(s.depts||[]).map((d,i)=>({...d,no:i+1}));
-  // 上階ほど後ろの部署（5F=最後の部署）
-  const order=depts.slice().reverse();
-  const cols=[['0px','0px'],['var(--W)','0px'],
-              ['0px','calc(-1 * var(--D))'],['var(--W)','calc(-1 * var(--D))']]
-    .map(([x,z])=>`<div class="col" style="--cx:${x};--cz:${z}"><i></i><i></i><i></i><i></i></div>`).join('');
-  const gears=[[90,-80,84,30,64],[210,-160,60,20,54],[330,-70,96,24,58],[470,-150,54,34,48]]
-    .map(([x,z,w,h,d])=>`<div class="gear" style="--gx:${x}px;--gz:${z}px;--gw:${w}px;--gh:${h}px;--gd:${d}px">
-       <i class="gt"></i><i class="gf"></i><i class="gs"></i></div>`).join('');
-  let html=`<div class="roof"><div class="top"></div></div>
-    <div class="rooftop">${gears}</div>${cols}
-    <div class="mast"></div><div class="sign"><span>FBA TREND RADAR</span></div>
-    <div class="shaft"><div class="glassf"></div><div class="car"></div></div>
-    <div class="ground"><i></i></div>`;
-
-  order.forEach((d,k)=>{
-    const on=d.members.filter(m=>isActive(m.state));
-    d.members.filter(m=>!isActive(m.state)).forEach(m=>resting.push(m));
-    const desks=`<div class="dsk" style="--x:130px;--z:-120px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>
-      <div class="dsk" style="--x:300px;--z:-150px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>
-      <div class="dsk" style="--x:450px;--z:-110px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>`;
-    html+=floorHTML({...d,cnt:`稼働 ${on.length}/${d.members.length}`}, k, d.no+'F',
-      on.length?'lit':'', on.length?'ACTIVE':'IDLE',
-      desks+on.map(staffWalk).join(''));
+  const depts=s.depts||[];
+  let html='',i=0;
+  const leg=[];
+  depts.forEach(d=>{
+    const on=d.members.filter(m=>isActive(m.state)&&m.state!=='error').length;
+    leg.push(`<span class="lg ${on?'lit':''}">${d.icon} ${d.dept}<b>${on}/${d.members.length}</b></span>`);
+    d.members.forEach(m=>{html+=empHTML(m,d.dept,SEAT_ORDER[i]??i);i++;});
   });
-
-  html+=floorHTML({icon:'☕',dept:'休憩室',cnt:`${resting.length}名 休憩中`}, order.length, 'B1', 'rest','STANDBY',
-    `<div class="dsk" style="--x:420px;--z:-140px"><div class="dtop"></div><div class="dfr"></div><div class="mon"></div></div>`
-    + resting.map(staffRest).join(''));
-
-  document.getElementById('world').innerHTML=html;
+  /* 差分が無ければDOMを触らない（アニメーションを途切れさせない） */
+  const key=JSON.stringify(depts.map(d=>d.members.map(m=>[m.name,m.state,m.next,m.last])));
+  if(tick.key!==key){document.getElementById('staff').innerHTML=html;tick.key=key;}
+  legend.innerHTML=leg.join('');
 
   document.getElementById('kpis').innerHTML=[
    ['有効会員',(k.active||0)+'名'],['トライアル',(k.trial||0)+'名'],
    ['配信レポート',(k.reports||0)+'本'],['成功率',(k.success_rate||0)+'%'],
   ].map(([l,v])=>`<div class="kbox"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('');
 
-  const next=[];depts.forEach(d=>d.members.forEach(m=>next.push({who:d.dept,name:m.name,next:m.next})));
+  const next=[];depts.forEach(d=>d.members.forEach(m=>next.push({who:d.dept,name:m.name,next:m.next,state:m.state})));
   document.getElementById('board').innerHTML=
    `<div class="sect">▸ 次の出社予定</div>`+
-   next.slice(0,5).map(t=>`<div class="task"><span class="tg a">${t.who.slice(0,4)}</span>
+   next.slice(0,6).map(t=>`<div class="task"><span class="tg ${t.state==='error'?'r':'a'}">${t.who.slice(0,4)}</span>
      <span class="ttx">${short(t.name)}</span><span class="tago">${t.next}</span></div>`).join('')+
    `<div class="sect">✓ 完了した仕事</div>`+
    ((s.feed||[]).map(f=>`<div class="task done"><span class="tg g">${f.who}</span>
@@ -749,55 +638,6 @@ async function tick(){
  }catch(e){}
 }
 tick();setInterval(tick,8000);
-
-/* ── カメラ操作（ドラッグ回転 / ホイールズーム / プリセット / 自動回転） ── */
-(()=>{
-  const root=document.documentElement, sc=document.querySelector('.scene');
-  const HOME={ry:-24,rx:8,tz:-90,tx:56};
-  let cam={...HOME}, auto=false, dir=1, drag=false, px=0, py=0;
-  const clamp=(v,a,b)=>v<a?a:v>b?b:v;
-  function apply(){
-    root.style.setProperty('--RY',cam.ry.toFixed(2)+'deg');
-    root.style.setProperty('--RX',cam.rx.toFixed(2)+'deg');
-    root.style.setProperty('--TZ',cam.tz.toFixed(0)+'px');
-    root.style.setProperty('--TX',cam.tx.toFixed(0)+'px');
-    document.body.classList.toggle('topview',cam.rx>20);
-  }
-  sc.addEventListener('pointerdown',e=>{
-    if(e.target.closest('.cam'))return;
-    drag=true;px=e.clientX;py=e.clientY;sc.classList.add('grabbing');
-    try{sc.setPointerCapture(e.pointerId)}catch(_){}
-  });
-  sc.addEventListener('pointermove',e=>{
-    if(!drag)return;
-    cam.ry=clamp(cam.ry+(e.clientX-px)*0.35,-88,88);
-    cam.rx=clamp(cam.rx-(e.clientY-py)*0.25,-20,60);
-    px=e.clientX;py=e.clientY;apply();
-  });
-  const stop=()=>{drag=false;sc.classList.remove('grabbing')};
-  sc.addEventListener('pointerup',stop); sc.addEventListener('pointercancel',stop);
-  sc.addEventListener('wheel',e=>{
-    e.preventDefault();
-    cam.tz=clamp(cam.tz-e.deltaY*0.7,-780,340);apply();
-  },{passive:false});
-  document.querySelectorAll('.cam button[data-ry]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      auto=false;autoBtn.classList.remove('on');
-      cam.ry=+b.dataset.ry;cam.rx=+b.dataset.rx;apply();
-    });
-  });
-  resetBtn.addEventListener('click',()=>{auto=false;autoBtn.classList.remove('on');cam={...HOME};apply()});
-  autoBtn.addEventListener('click',()=>{auto=!auto;autoBtn.classList.toggle('on',auto)});
-  (function loop(){
-    if(auto&&!drag){
-      cam.ry+=0.14*dir;
-      if(cam.ry>34||cam.ry<-72)dir*=-1;
-      apply();
-    }
-    requestAnimationFrame(loop);
-  })();
-  apply();
-})();
 </script>
 </body></html>"""
 
@@ -807,6 +647,18 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.path.startswith("/bg.jpg"):
+            img = BASE_DIR / "scripts" / "dashboard_assets" / "office_bg.jpg"
+            if img.exists():
+                body = img.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_response(404); self.end_headers()
+            return
         if self.path.startswith("/api/state"):
             with _lock:
                 body = json.dumps(_state, ensure_ascii=False).encode("utf-8")
