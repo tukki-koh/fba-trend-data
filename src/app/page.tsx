@@ -297,9 +297,9 @@ export default async function HomePage() {
           <div className="flex items-center gap-5">
             <a href="#pricing" className="hidden sm:inline text-sm text-stone-300 hover:text-white transition-colors">料金</a>
             <a href="#faq" className="hidden sm:inline text-sm text-stone-300 hover:text-white transition-colors">よくある質問</a>
-            <Link href="/checkout?plan=standard"
+            <Link href="#free-sample"
               className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">
-              今すぐ始める
+              無料サンプルを見る
             </Link>
           </div>
         </div>
