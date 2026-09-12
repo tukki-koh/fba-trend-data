@@ -595,7 +595,7 @@ export default async function HomePage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-3 text-stone-900">シンプルな2つのプラン</h2>
-            <p className="text-stone-500">人気AIツール1つ分より安く。どちらも14日間の返金保証つきなので、まず気軽に試してください。</p>
+            <p className="text-stone-500">スタンダードは1日あたり約50円。どちらも14日間の返金保証つきなので、まず気軽に試してください。</p>
           </div>
           <PlanPicker plans={PLANS} />
           <p className="text-center text-stone-500 text-sm mt-8">
