@@ -257,18 +257,18 @@ const M={
   duct:new THREE.MeshStandardMaterial({color:0x8b96a3,roughness:.5,metalness:.7}),
   beam:new THREE.MeshStandardMaterial({color:0x2f3742,roughness:.8,metalness:.3}),
   col:new THREE.MeshStandardMaterial({color:0x39424e,roughness:.9}),
-  desk:new THREE.MeshStandardMaterial({color:0xaeb6bf,roughness:.6,metalness:.05}),
-  deskLeg:new THREE.MeshStandardMaterial({color:0xc9cfd6,roughness:.5,metalness:.4}),
+  desk:new THREE.MeshStandardMaterial({color:0x7d858f,roughness:.85,metalness:0}),
+  deskLeg:new THREE.MeshStandardMaterial({color:0x9aa2ab,roughness:.6,metalness:.3}),
   chair:new THREE.MeshStandardMaterial({color:0x1d2229,roughness:.9}),
   chairMetal:new THREE.MeshStandardMaterial({color:0x2b3138,roughness:.4,metalness:.7}),
-  bezel:new THREE.MeshStandardMaterial({color:0x0b0d11,roughness:.5,metalness:.3}),
+  bezel:new THREE.MeshStandardMaterial({color:0x1b2029,roughness:.55,metalness:.35}),
   lampBody:new THREE.MeshStandardMaterial({color:0x22262c,roughness:.5,metalness:.6}),
   lampOff:new THREE.MeshStandardMaterial({color:0x1d232c,roughness:.7,emissive:0x0e1a26,emissiveIntensity:.6}),
   glassFrame:new THREE.MeshStandardMaterial({color:0x1a1f27,roughness:.6,metalness:.4}),
   glass:new THREE.MeshPhysicalMaterial({color:0x8fb8dc,transparent:true,opacity:.09,roughness:.08,metalness:0,side:THREE.DoubleSide}),
   plant:new THREE.MeshStandardMaterial({color:0x1f4a33,roughness:.95}),
   pot:new THREE.MeshStandardMaterial({color:0x2a2f36,roughness:.8}),
-  drawer:new THREE.MeshStandardMaterial({color:0xcfd5db,roughness:.6,metalness:.1}),
+  drawer:new THREE.MeshStandardMaterial({color:0x9aa2ab,roughness:.7,metalness:.05}),
   sofa:new THREE.MeshStandardMaterial({color:0x33404f,roughness:.95}),
   sofaSeat:new THREE.MeshStandardMaterial({color:0x3d4b5c,roughness:.95}),
   bed:new THREE.MeshStandardMaterial({color:0x242b36,roughness:.95}),
@@ -383,7 +383,7 @@ const REST_SLOTS=[];
   for(let i=0;i<5;i++){const lf=new THREE.Mesh(new THREE.SphereGeometry(.24,7,6),M.plant);
     lf.scale.set(1,1.6,1);lf.position.set(-3.9+Math.cos(i*1.3)*.17,.8+Math.sin(i*2)*.1,RZ0+2.8+Math.sin(i*1.3)*.17);scene.add(lf)}
   // 座る位置（ソファの座面。人は +z（部屋の入口）を向く）
-  for(const dx of [-1.55,-.5,.55,1.6]) REST_SLOTS.push({x:bx+dx,y:.49,z:RZ0+1.0,ry:Math.PI});
+  for(const dx of [-1.55,-.5,.55,1.6]) REST_SLOTS.push({x:bx+dx,y:.52,z:RZ0+1.0,ry:Math.PI});
 }
 
 /* 仮眠室の家具 */
@@ -446,10 +446,10 @@ function workstation(seed,staffed){
   const kb=box(.36,.012,.12,M.bezel);kb.position.set(.15,.765,.1);g.add(kb);
   if(staffed){
     const lamp=deskLamp();lamp.position.set(.62,.76,-.25);g.add(lamp);
-    const ch=chair();ch.position.set(0,0,.62);ch.rotation.y=Math.PI;g.add(ch);
+    const ch=chair();ch.position.set(0,0,.62);g.add(ch);   // 背もたれは机と反対側（+z）
     g.userData={mon,lamp,chair:ch,kind};
   }else{
-    const ch=chair();ch.position.set(0,0,.62);ch.rotation.y=Math.PI+(r()-.5)*.8;g.add(ch);
+    const ch=chair();ch.position.set(0,0,.62);ch.rotation.y=(r()-.5)*.8;g.add(ch);  // 無人席は少し斜め
     g.userData={mon,kind};
   }
   return g;
@@ -482,7 +482,7 @@ const moon=new THREE.DirectionalLight(0x8fb4e0,.8);moon.position.set(2,3.0,-14);
 moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);
 Object.assign(moon.shadow.camera,{left:-10,right:10,top:8,bottom:-8,near:1,far:40});moon.shadow.bias=-0.0009;
 scene.add(moon,moon.target);
-for(const x of [-2.2,2.2]){const sp=new THREE.SpotLight(0xb4d2ee,34,16,.9,.75,1.3);
+for(const x of [-2.2,2.2]){const sp=new THREE.SpotLight(0xb4d2ee,14,16,.95,.85,1.2);
   sp.position.set(x,3.2,-3.4);sp.target.position.set(x*1.25,0,-4.4);scene.add(sp,sp.target)}
 /* 休憩室・仮眠室のムード灯（各1） */
 const restLight=new THREE.PointLight(0xffcf9a,14,8,2);restLight.position.set(-5.8,2.3,RZ0+1.6);scene.add(restLight);
@@ -517,9 +517,10 @@ const G={head:new THREE.SphereGeometry(.115,16,14),neck:new THREE.CapsuleGeometr
 /* 姿勢プリセット。肩の回転は「＋で前（-z）へ振る」。
    以前は -1.05 が入っていて腕が体の後ろへ突き出していた。 */
 const POSE={
-  work:{torso:-.10,sh: .62,el: .58,hip: Math.PI/2,knee:-Math.PI/2,lay:0},
+  // 手が天板(y=0.76)のすぐ上に来る角度。sh=.62/el=.58 では手が机に3〜5cm埋まっていた
+  work:{torso:-.10,sh: .92,el: .42,hip: Math.PI/2,knee:-Math.PI/2,lay:0},
   rest:{torso: .26,sh: .18,el: .62,hip: Math.PI/2*.86,knee:-Math.PI/2*.78,lay:0},
-  nap :{torso: .02,sh: .12,el: .16,hip: .06,knee:-.05,lay:-Math.PI/2},
+  nap :{torso: .02,sh: .12,el: .16,hip: .06,knee:-.05,lay: Math.PI/2},
 };
 
 function makeFigure(){
@@ -572,7 +573,7 @@ function setPose(F,name){
   for(let i=0;i<2;i++){F.sh[i].rotation.x=p.sh;F.el[i].rotation.x=p.el;
     F.hip[i].rotation.x=p.hip;F.knee[i].rotation.x=p.knee}
   // 寝かせたぶん体が床へ潜らないよう持ち上げる
-  F.body.position.y=name==='nap'?.36:0;
+  F.body.position.y=name==='nap'?.18:0;   // 寝かせた体をマットレスの上に乗せる
   F.labelObj.position.y=name==='nap'?.62:1.02;
 }
 
@@ -619,7 +620,8 @@ function applyState(F,m,i,slots){
   if(changed){
     if(st==='nap'){
       const s=NAP_SLOTS[slots.nap++ % NAP_SLOTS.length];
-      F.root.position.set(s.x,s.y,s.z);F.root.rotation.y=0;setPose(F,'nap');
+      // lay=+π/2 で仰向け、rootをY180°回して頭を枕側(-z)へ向ける
+      F.root.position.set(s.x,s.y,s.z);F.root.rotation.y=Math.PI;setPose(F,'nap');
     }else if(st==='rest'){
       const s=REST_SLOTS[slots.rest++ % REST_SLOTS.length];
       F.root.position.set(s.x,s.y,s.z);F.root.rotation.y=s.ry;setPose(F,'rest');
@@ -727,7 +729,7 @@ function animate(){
     F.mat.uniforms.uT.value=t+F.seedT;
     const ph=t+F.seedT;
     if(F.state==='run'||F.state==='work'){
-      const sp=F.state==='run'?13:7.5, amp=F.state==='run'?.13:.085;
+      const sp=F.state==='run'?13:7.5, amp=F.state==='run'?.10:.07;
       F.el[0].rotation.x=POSE.work.el+Math.sin(ph*sp)*amp;
       F.el[1].rotation.x=POSE.work.el+Math.sin(ph*sp+Math.PI)*amp;
       F.head.rotation.x=Math.sin(ph*.9)*.05;F.head.rotation.y=Math.sin(ph*.5)*.11;
