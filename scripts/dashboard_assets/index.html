@@ -52,6 +52,7 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
 .lb .st i{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 1.4s infinite}
 .lb:after{content:"";width:1px;height:var(--ll,12px);background:linear-gradient(180deg,rgba(150,235,255,.9),transparent)}
 .lb.run .st i{background:var(--cyan);box-shadow:0 0 7px var(--cyan);animation-duration:.5s}
+.lb.work .st i{background:var(--green);box-shadow:0 0 7px var(--green);animation-duration:2s}
 /* 休憩中・仮眠中は主張を弱める */
 .lb.rest,.lb.nap{opacity:.72}
 .lb.rest .st,.lb.nap .st{color:#9aa6c4}
@@ -122,7 +123,8 @@ header:before{content:"";position:absolute;left:0;top:0;height:2px;width:100%;
     <div>FBA TREND RADAR<div class="tag">AI OFFICE ／ LIVE 3D MONITOR</div></div></div>
   <div class="hud">
     <div class="hd"><span class="l">STAFF</span><span class="v" id="hemp">–</span></div>
-    <div class="hd"><span class="l">実行中</span><span class="v cy" id="hrun">–</span></div>
+    <div class="hd"><span class="l">在席</span><span class="v cy" id="hdesk">–</span></div>
+    <div class="hd"><span class="l">実行中</span><span class="v am" id="hrun">–</span></div>
     <div class="hd"><span class="l">正常</span><span class="v gr" id="hok">–</span></div>
     <div class="hd"><span class="l">休憩/仮眠</span><span class="v vi" id="hoff">–</span></div>
     <div class="hd"><span class="l">TODAY</span><span class="v am" id="hact">–</span></div>
@@ -170,8 +172,8 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {CSS2DRenderer, CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 
-const LBL ={run:'RUNNING',ok:'ACTIVE',error:'ERROR',rest:'BREAK',nap:'SLEEPING'};
-const LBLJ={run:'実行中',ok:'稼働中',error:'要確認',rest:'休憩中',nap:'仮眠中'};
+const LBL ={run:'RUNNING',work:'WORKING',error:'ERROR',rest:'BREAK',nap:'SLEEPING'};
+const LBLJ={run:'実行中',work:'作業中',error:'要確認',rest:'休憩中',nap:'仮眠中'};
 const short=n=>n.replace(/（.*?）/g,'').replace(/担当$/,'');
 const rnd=(seed)=>{let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}};
 
@@ -604,10 +606,13 @@ function offDuty(m){return /あと\s*\d+\s*日/.test(m.next||'')?'nap':'rest'}
 
 function applyState(F,m,i,slots){
   const raw=m.state;
-  // 席で作業するのは「いま実行中」だけ。直近成功(ok)は健康だが手が空いているので
-  // 休憩室か仮眠室へ送る。ユーザー要望どおり“本当に動いている人だけ”が動く。
-  const dutyOn = raw==='run';
-  const st = raw==='run' ? 'run' : raw==='error' ? 'error' : offDuty(m);
+  // 席にいるのは「実行中」＋「直近30分以内に完了（後処理中）」＋「要確認」。
+  // それ以外は手が空いているので休憩室か仮眠室へ送る。
+  const st = raw==='run'   ? 'run'
+           : raw==='error' ? 'error'
+           : (raw==='ok' && m.recent) ? 'work'
+           : offDuty(m);
+  const dutyOn = st==='run'||st==='work';
   const changed = F.state!==st;
   F.state=st;
 
@@ -630,7 +635,7 @@ function applyState(F,m,i,slots){
 
   const col = st==='error'?RD : (st==='nap'||st==='rest')?VI : CY;
   F.mat.uniforms.uC.value.copy(col);
-  F.mat.uniforms.uO.value = st==='run'?.9 : st==='error'?.8 : st==='rest'?.34 : .26;
+  F.mat.uniforms.uO.value = st==='run'?.9 : st==='work'?.82 : st==='error'?.8 : st==='rest'?.34 : .26;
   F.mat.uniforms.uGl.value = st==='run'?.6:0;
   F.pts.visible = dutyOn;
 
@@ -643,7 +648,7 @@ function applyState(F,m,i,slots){
   }
 
   const el=F.label;
-  el.className='lb '+(st==='run'?'run':st==='error'?'err':st==='rest'?'rest':st==='nap'?'nap':'');
+  el.className='lb '+(st==='run'?'run':st==='work'?'work':st==='error'?'err':st==='rest'?'rest':'nap');
   el.querySelector('.nm').textContent=short(m.name);
   el.querySelector('.st span').textContent=LBL[st]||'';
   el.querySelector('.tip').innerHTML=
@@ -657,7 +662,7 @@ async function tick(){
   const slots={rest:0,nap:0};
   const depts=s.depts||[];const leg=[];let i=0,offCnt=0;
   depts.forEach(d=>{
-    const on=d.members.filter(m=>m.state==='run').length;
+    const on=d.members.filter(m=>m.state==='run'||(m.state==='ok'&&m.recent)).length;
     leg.push(`<span class="lg ${on?'lit':''}">${d.icon} ${d.dept}<b>${on}/${d.members.length}</b></span>`);
     d.members.forEach(m=>{
       if(!figures[i])figures[i]=makeFigure();
@@ -668,18 +673,20 @@ async function tick(){
   });
   // 稼働中の社員にだけライトを貸す（先着3名）
   let li=0;
+  for(const F of figures)if(F)F.light=null;
+  for(const want of ['run','work'])
   for(const F of figures){
-    if(!F)continue;
-    if(F.state==='run'&&li<LIGHT_POOL.length){
+    if(!F||F.light)continue;
+    if(F.state===want&&li<LIGHT_POOL.length){
       const L=LIGHT_POOL[li++];F.light=L;
       F.root.getWorldPosition(L.position);L.position.y+=.5;
-      L.color.set(0x4fc3ff);L.intensity=2.6;
-    }else F.light=null;
+      L.color.set(0x4fc3ff);L.intensity=F.state==='run'?2.6:1.7;
+    }
   }
   for(let j=li;j<LIGHT_POOL.length;j++)LIGHT_POOL[j].intensity=0;
 
   hemp.textContent=(k.resident||0)+'名'; hrun.textContent=(s.running_now||0)+'名';
-  hok.textContent=(s.healthy??0)+'名'; hoff.textContent=offCnt+'名';
+  hdesk.textContent=(s.at_desk??0)+'名'; hok.textContent=(s.healthy??0)+'名'; hoff.textContent=offCnt+'名';
   hact.textContent=(s.today_activity||0)+'件'; hclock.textContent=s.hhmm||'–'; sclock.textContent=s.hhmm||'–';
   legend.innerHTML=leg.join('');
   document.getElementById('kpis').innerHTML=[
@@ -719,8 +726,8 @@ function animate(){
     if(!F)continue;
     F.mat.uniforms.uT.value=t+F.seedT;
     const ph=t+F.seedT;
-    if(F.state==='run'){
-      const sp=13, amp=.13;
+    if(F.state==='run'||F.state==='work'){
+      const sp=F.state==='run'?13:7.5, amp=F.state==='run'?.13:.085;
       F.el[0].rotation.x=POSE.work.el+Math.sin(ph*sp)*amp;
       F.el[1].rotation.x=POSE.work.el+Math.sin(ph*sp+Math.PI)*amp;
       F.head.rotation.x=Math.sin(ph*.9)*.05;F.head.rotation.y=Math.sin(ph*.5)*.11;
@@ -728,7 +735,7 @@ function animate(){
       const p=F.pts.geometry.attributes.position.array;
       for(let i=1;i<p.length;i+=3){p[i]+=dt*.35;if(p[i]>1.2)p[i]=0}
       F.pts.geometry.attributes.position.needsUpdate=true;
-      if(F.light)F.light.intensity=2.6+Math.sin(t*6+F.seedT)*.25;
+      if(F.light)F.light.intensity=(F.state==='run'?2.6:1.7)+Math.sin(t*6+F.seedT)*.25;
     }else if(F.state==='error'){
       F.torso.rotation.z=(Math.random()-.5)*.03;   // 小刻みに震えるだけ。作業はしない
     }else if(F.state==='rest'){

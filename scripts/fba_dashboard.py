@@ -24,6 +24,7 @@ REPO      = "tukki-koh/fba-trend-data"
 BASE_DIR  = Path(__file__).resolve().parent.parent           # ~/fba-trend-data
 ENV_FILE  = BASE_DIR / ".env.local"
 REFRESH_SEC = 90
+RECENT_SEC  = 30 * 60      # 直近この秒数以内に完了した社員は席に残す（後処理中の扱い）
 ASSET_DIR = BASE_DIR / "scripts" / "dashboard_assets"                 # 背景画像・3D画面(index.html)
 
 # ─── ブランド：サイトと同じ amber / stone（明るい） ──────────
@@ -234,6 +235,7 @@ def refresh():
 
     depts = []
     running = 0
+    at_desk = 0
     resident = 0
     ok_cnt = err_cnt = 0
     for d in ORG:
@@ -261,9 +263,13 @@ def refresh():
                     state = "warn"         # 未実行 or 予定を超過
 
             # 「実行中」は本当にいま走っているジョブだけ。
-            # 直近成功(ok)は“健康だが待機中”であり、画面では休憩室/仮眠室に送る。
+            # ただし直近30分以内に完了した社員は、まだ席にいる（後処理中）扱いにする。
+            # 週数分しか走らないジョブばかりなので、これが無いと机が常に無人になる。
+            recent = bool(ts) and (now.timestamp() - ts) < RECENT_SEC
             if state == "run":
                 running += 1
+            if state == "run" or (state == "ok" and recent) or state == "error":
+                at_desk += 1
             if state in ("ok", "run"):
                 ok_cnt += 1
             elif state == "error":
@@ -279,7 +285,7 @@ def refresh():
                 last_txt = "履歴なし"
             members.append({
                 "name": m["name"], "role": m["role"], "state": state,
-                "next": next_txt, "last": last_txt,
+                "next": next_txt, "last": last_txt, "recent": recent,
             })
         depts.append({"dept": d["dept"], "icon": d["icon"], "members": members})
 
@@ -306,6 +312,7 @@ def refresh():
             "now": now.strftime("%Y-%m-%d %H:%M:%S"),
             "hhmm": now.strftime("%H:%M:%S"),
             "running_now": running,       # いま実行中の社員数
+            "at_desk": at_desk,           # 席にいる社員数（実行中＋直近30分に完了＋要確認）
             "healthy": ok_cnt,            # 直近が成功している社員数（待機を含む）
             "today_activity": today_activity,
             "kpi": {"active": active, "trial": trial, "reports": reports,
