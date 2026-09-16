@@ -260,9 +260,11 @@ def refresh():
                 else:
                     state = "warn"         # 未実行 or 予定を超過
 
-            # 「稼働中」= 正常に稼働している社員（実行中＋直近成功）
-            if state in ("ok", "run"):
+            # 「実行中」は本当にいま走っているジョブだけ。
+            # 直近成功(ok)は“健康だが待機中”であり、画面では休憩室/仮眠室に送る。
+            if state == "run":
                 running += 1
+            if state in ("ok", "run"):
                 ok_cnt += 1
             elif state == "error":
                 err_cnt += 1
@@ -303,7 +305,8 @@ def refresh():
         _state.update({
             "now": now.strftime("%Y-%m-%d %H:%M:%S"),
             "hhmm": now.strftime("%H:%M:%S"),
-            "running_now": running,
+            "running_now": running,       # いま実行中の社員数
+            "healthy": ok_cnt,            # 直近が成功している社員数（待機を含む）
             "today_activity": today_activity,
             "kpi": {"active": active, "trial": trial, "reports": reports,
                     "resident": resident, "success_rate": success_rate},
@@ -658,7 +661,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = f.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", ctype)
-                self.send_header("Cache-Control", "public, max-age=86400")
+                # 画像を差し替えたら即反映されるよう、毎回サーバへ確認させる
+                self.send_header("Cache-Control", "no-cache")
                 self.end_headers()
                 self.wfile.write(body)
             else:
