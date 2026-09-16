@@ -24,7 +24,7 @@ REPO      = "tukki-koh/fba-trend-data"
 BASE_DIR  = Path(__file__).resolve().parent.parent           # ~/fba-trend-data
 ENV_FILE  = BASE_DIR / ".env.local"
 REFRESH_SEC = 90
-RECENT_SEC  = 30 * 60      # 直近この秒数以内に完了した社員は席に残す（後処理中の扱い）
+RECENT_SEC  = 3 * 3600     # 直近この秒数以内に完了した社員は席に残す（後処理中の扱い）
 ASSET_DIR = BASE_DIR / "scripts" / "dashboard_assets"                 # 背景画像・3D画面(index.html)
 
 # ─── ブランド：サイトと同じ amber / stone（明るい） ──────────
@@ -263,7 +263,7 @@ def refresh():
                     state = "warn"         # 未実行 or 予定を超過
 
             # 「実行中」は本当にいま走っているジョブだけ。
-            # ただし直近30分以内に完了した社員は、まだ席にいる（後処理中）扱いにする。
+            # ただし直近 RECENT_SEC 以内に完了した社員は、まだ席にいる（後処理中）扱い。
             # 週数分しか走らないジョブばかりなので、これが無いと机が常に無人になる。
             recent = bool(ts) and (now.timestamp() - ts) < RECENT_SEC
             if state == "run":
