@@ -525,7 +525,7 @@ export default async function HomePage() {
           <p className="text-stone-600 mb-1 leading-relaxed">
             メールアドレスを入れるだけ。直近の週次レポートがそのまま届きます。
           </p>
-          <p className="text-stone-400 text-sm mb-8">カード登録なし。気に入らなければ、そのまま終わりで大丈夫です。</p>
+          <p className="text-stone-400 text-sm mb-8">カード登録なし。届いたレポートを見てから、続けるかどうかゆっくり決めてください。</p>
           <FreeSampleForm />
         </div>
       </section>
