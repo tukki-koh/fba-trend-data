@@ -299,7 +299,7 @@ export default async function HomePage() {
             <a href="#faq" className="hidden sm:inline text-sm text-stone-300 hover:text-white transition-colors">よくある質問</a>
             <Link href="#free-sample"
               className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">
-              無料サンプルを見る
+              無料サンプルを受け取る（カード不要）
             </Link>
           </div>
         </div>
