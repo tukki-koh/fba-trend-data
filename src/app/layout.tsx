@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s｜FBAトレンドレーダー",
   },
   description:
-    "Amazon FBA仕入れリサーチを自動化。売れ筋TOP10×5カテゴリを毎週月曜7時にPDF配信。月額1,480円〜・14日間全額返金保証・無料サンプルあり（カード登録不要）。",
+    "Amazon FBA仕入れリサーチが3分で完了。売れ筋TOP10×5カテゴリを毎週月曜7時にPDF自動配信。月額1,480円〜・14日間全額返金保証・無料サンプルあり（カード登録不要・今すぐ確認）。",
   keywords: [
     "Amazon FBA", "せどり", "Amazon売れ筋", "FBA仕入れ", "Amazonトレンド",
     "物販", "副業", "Amazon転売", "ベストセラー", "週次レポート",
