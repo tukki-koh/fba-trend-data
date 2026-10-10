@@ -358,7 +358,7 @@ export default async function HomePage() {
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-8">
               <Link href="#free-sample"
                 className="group shrink-0 inline-flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-400 text-white text-base font-bold px-7 py-4 rounded-full transition-all shadow-xl shadow-amber-900/40">
-                <Gift size={18} /> まずは無料サンプルを受け取る（カード不要）
+                <Gift size={18} /> 30秒で無料サンプルを受け取る（カード不要）
               </Link>
               <HeroEmailCapture />
             </div>
