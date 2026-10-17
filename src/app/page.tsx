@@ -34,7 +34,7 @@ const PLANS = [
     ],
     cta: "スタンダードで始める",
     href: "/checkout?plan=standard",
-    highlight: false,
+    highlight: true,
   },
   {
     name: "プロ",
@@ -52,7 +52,7 @@ const PLANS = [
     ],
     cta: "プロで始める",
     href: "/checkout?plan=pro",
-    highlight: true,
+    highlight: false,
   },
 ];
 
