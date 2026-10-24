@@ -330,7 +330,7 @@ export default async function HomePage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-amber-400/15 border border-amber-400/45 text-amber-200 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-7 backdrop-blur-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              毎週月曜 AM7:00 に自動配信
+              副業FBA・せどり向け｜毎週月曜 AM7:00 自動配信
             </div>
 
             <h1
