@@ -653,7 +653,7 @@ export default async function HomePage() {
             <div className="bg-[#faf9f7] border border-stone-200 rounded-2xl p-7">
               <div className="flex items-center gap-2.5 mb-3">
                 <ShieldCheck size={18} className="text-amber-500" />
-                <h3 className="font-semibold text-stone-900">お客様の声を載せていない理由</h3>
+                <h3 className="font-semibold text-stone-900">お客様の声の代わりに、事実をお伝えします</h3>
               </div>
               <p className="text-stone-600 text-sm leading-relaxed">
                 サービスを始めて日が浅く、掲載できる利用者の声がまだありません。
