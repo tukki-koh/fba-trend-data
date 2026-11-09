@@ -126,13 +126,43 @@ def next_run(sched, now):
     return None
 
 
-def git_last_ts(sig):
+def git_fetch():
+    """リモートの最新コミットを取り込む。
+    クラウドAI社員はGitHub Actions上でコミットするため、ローカルの履歴だけを
+    見ていると「pullしていない日数＝停止期間」と誤判定する。実際に2ヶ月間
+    正常稼働していた4名を『58〜65日停止』と表示する事故が起きたため追加。
+    ネットワークが無くても画面は動き続ける（失敗は黙って無視する）。"""
+    try:
+        subprocess.run(
+            ["git", "-C", str(BASE_DIR), "fetch", "--quiet", "--no-tags", "origin", "main"],
+            capture_output=True, timeout=30,
+        )
+    except Exception:
+        pass
+
+
+def _git_ref():
+    """稼働判定に使う対象。origin/main があればそれ、無ければローカルHEAD。"""
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(BASE_DIR), "rev-parse", "--verify", "--quiet", "origin/main"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return "origin/main"
+    except Exception:
+        pass
+    return "HEAD"
+
+
+def git_last_ts(sig, ref=None):
     """コミットメッセージに sig を含む最新コミットのUNIX時刻。無ければ0。"""
     if not sig:
         return 0
     try:
         r = subprocess.run(
-            ["git", "-C", str(BASE_DIR), "log", "-1", "--format=%ct", "--grep", sig],
+            ["git", "-C", str(BASE_DIR), "log", "-1", "--format=%ct",
+             "--grep", sig, ref or _git_ref()],
             capture_output=True, text=True, timeout=10,
         )
         s = r.stdout.strip()
@@ -228,6 +258,8 @@ def refresh():
     now = datetime.now()
     env = load_env()
     job_status, feed_raw = collect_gh()
+    git_fetch()                 # クラウド社員の最新コミットを取り込む
+    ref = _git_ref()
 
     active  = sb_count(env, "members", "status=eq.active")
     trial   = sb_count(env, "members", "status=eq.trial")
@@ -255,7 +287,7 @@ def refresh():
                 else:
                     state = "warn"         # 実行履歴を取得できず
             else:  # claude常駐：git履歴で実稼働を判定
-                ts = git_last_ts(m.get("sig", ""))
+                ts = git_last_ts(m.get("sig", ""), ref)
                 interval = m.get("interval_days", 7) * 86400
                 if ts and (now.timestamp() - ts) < interval * 1.4:
                     state = "ok"           # 予定どおり稼働
